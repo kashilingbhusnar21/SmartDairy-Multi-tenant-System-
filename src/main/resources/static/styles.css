@@ -1,0 +1,42 @@
+:root {
+	--brand: #4f46e5;
+}
+
+.navbar-brand {
+	letter-spacing: 0.2px;
+}
+
+.hero {
+	background: radial-gradient(1200px circle at 10% 10%, rgba(79, 70, 229, 0.18), transparent 45%),
+		radial-gradient(1000px circle at 90% 30%, rgba(14, 165, 233, 0.14), transparent 45%),
+		linear-gradient(180deg, #0b1020, #0b1020);
+	color: #fff;
+	border-radius: 1.25rem;
+}
+
+.hero .badge {
+	background: rgba(255, 255, 255, 0.14);
+	border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.product-card {
+	transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.product-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 16px 36px rgba(15, 23, 42, 0.14);
+}
+
+.product-img {
+	aspect-ratio: 4 / 5;
+	object-fit: cover;
+	border-top-left-radius: .75rem;
+	border-top-right-radius: .75rem;
+}
+
+.price {
+	color: var(--brand);
+	font-weight: 700;
+}
+
