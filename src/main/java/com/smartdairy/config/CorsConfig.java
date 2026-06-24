@@ -19,11 +19,7 @@ public class CorsConfig {
 
         config.setAllowCredentials(true);
 
-        config.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "http://localhost:5174",
-                "https://smartdairy-multi-tenant-system-1.onrender.com"
-        ));
+        config.setAllowedOriginPatterns(List.of("*"));
 
         config.setAllowedHeaders(List.of("*"));
 
