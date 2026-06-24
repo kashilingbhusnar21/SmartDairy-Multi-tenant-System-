@@ -31,7 +31,8 @@ public class MilkCollectionController {
     private final MilkCollectionService milkCollectionService;
 
     @PostMapping
-    public ResponseEntity<MilkCollectionResponse> create(@Valid @RequestBody MilkCollectionRequest request) {
+    public ResponseEntity<MilkCollectionResponse> create
+            (@Valid @RequestBody MilkCollectionRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(milkCollectionService.create(request));
     }
 
