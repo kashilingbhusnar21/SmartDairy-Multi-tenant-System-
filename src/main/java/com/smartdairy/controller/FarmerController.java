@@ -28,9 +28,12 @@ public class FarmerController {
     private final FarmerService farmerService;
 
     @PostMapping
-    public ResponseEntity<FarmerResponse> createFarmer(@Valid @RequestBody FarmerRequest request) {
+    public ResponseEntity<FarmerResponse> createFarmer(
+            @Valid @RequestBody FarmerRequest request) {
         FarmerResponse response = farmerService.createFarmer(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
     }
 
     @PutMapping("/{id}")
