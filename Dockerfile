@@ -2,7 +2,7 @@ FROM eclipse-temurin:17
 
 WORKDIR /app
 
-COPY . .
+COPY backend/. .
 
 RUN chmod +x mvnw
 
