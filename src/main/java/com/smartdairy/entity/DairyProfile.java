@@ -46,7 +46,7 @@ public class DairyProfile {
     @Column(length = 400)
     private String dairyAddress;
 
-    @Column(columnDefinition = "LONGTEXT")
+    @Column(columnDefinition = "TEXT")
     private String dairyLogo;
 
     @Column(nullable = false)
