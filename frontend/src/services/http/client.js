@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = "https://smart-dairy-backend-production-4a46.up.railway.app";
 const TOKEN_KEY = "smart_dairy_token";
 
 // Create axios instance with default configuration
