@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import PublicHeader from "../components/PublicHeader";
 import { register } from "../services/auth";
 import { extractTokenFromAuthPayload, saveAuth } from "../utils/auth";
 import { getErrorMessage } from "../utils/errorMessage";
+import authBg from "../assets/auth-bg.jpg.png";
 
 function RegisterPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: "", password: "", role: "FARMER" });
+  const [form, setForm] = useState({ email: "", password: "", role: "ADMIN" });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -41,55 +42,60 @@ function RegisterPage() {
   return (
     <>
       <PublicHeader />
-      <main className="max-w-md mx-auto px-4 py-10">
-        <div className="bg-white shadow-sm border border-slate-200 rounded-xl p-6">
-          <h2 className="text-2xl font-bold text-slate-800 mb-4">Register</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <input
-              name="email"
-              type="email"
-              placeholder="Enter email"
-              value={form.email}
-              onChange={handleChange}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2"
-              required
-              autoComplete="email"
-            />
-            <input
-              name="password"
-              type="password"
-              placeholder="Enter password"
-              value={form.password}
-              onChange={handleChange}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2"
-              required
-              minLength={6}
-              autoComplete="new-password"
-            />
-            <select
-              name="role"
-              value={form.role}
-              onChange={handleChange}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white"
-            >
-              <option value="FARMER">Farmer</option>
-              <option value="ADMIN">Admin</option>
-            </select>
-            {error ? <p className="text-red-600 text-sm">{error}</p> : null}
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full bg-emerald-600 text-white rounded-lg py-2 font-semibold hover:bg-emerald-700 disabled:opacity-60"
-            >
-              {submitting ? "Registering..." : "Register"}
-            </button>
-          </form>
-          <p className="text-sm text-slate-600 mt-4 text-center">
-            Already have an account?{" "}
-            <Link to="/login" className="text-emerald-700 font-medium hover:underline">
-              Login
-            </Link>
-          </p>
+      <main
+        className="min-h-screen flex items-center justify-center px-4 py-10 relative"
+        style={{
+          backgroundImage: `url(${authBg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      >
+        <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" />
+        <div className="relative z-10 w-full max-w-md animate-fade-in">
+          <div className="bg-white/85 backdrop-blur-xl shadow-2xl rounded-[20px] p-10 border border-white/30 transition-all duration-300 hover:shadow-3xl">
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">Admin Registration</h2>
+            <p className="text-sm text-slate-600 mb-4">
+              Create your dairy account to start managing farmers, milk collections, feed purchases, payments, and reports.
+            </p>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <input
+                name="email"
+                type="email"
+                placeholder="Enter email"
+                value={form.email}
+                onChange={handleChange}
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                required
+                autoComplete="email"
+              />
+              <input
+                name="password"
+                type="password"
+                placeholder="Enter password"
+                value={form.password}
+                onChange={handleChange}
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                required
+                minLength={6}
+                autoComplete="new-password"
+              />
+              {error ? <p className="text-red-600 text-sm">{error}</p> : null}
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-xl py-3 font-semibold hover:from-emerald-700 hover:to-emerald-600 disabled:opacity-60 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
+              >
+                {submitting ? "Registering..." : "Register Admin"}
+              </button>
+            </form>
+            <p className="text-sm text-slate-600 mt-4 text-center">
+              Already have an account?{" "}
+              <Link to="/login" className="text-emerald-700 font-medium hover:underline">
+                Login
+              </Link>
+            </p>
+          </div>
         </div>
       </main>
     </>

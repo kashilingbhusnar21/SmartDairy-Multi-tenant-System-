@@ -95,12 +95,9 @@ public class ReportController {
     public ResponseEntity<FarmerBillResponse> farmerBillPreview(
             @RequestParam Long farmerId,
             @RequestParam("from") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam("to") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            @RequestParam(value = "advancePayment", required = false) BigDecimal advancePayment,
-            @RequestParam(value = "loanAmount", required = false) BigDecimal loanAmount,
-            @RequestParam(value = "otherDeductions", required = false) BigDecimal otherDeductions) {
+            @RequestParam("to") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         return ResponseEntity.ok(farmerBillService.preview(
-                farmerId, from, to, advancePayment, loanAmount, otherDeductions));
+                farmerId, from, to));
     }
 
     @GetMapping("/farmer-bill/export")
@@ -108,14 +105,20 @@ public class ReportController {
             @RequestParam Long farmerId,
             @RequestParam("from") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam("to") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            @RequestParam(value = "advancePayment", required = false) BigDecimal advancePayment,
-            @RequestParam(value = "loanAmount", required = false) BigDecimal loanAmount,
-            @RequestParam(value = "otherDeductions", required = false) BigDecimal otherDeductions,
             @RequestParam(value = "format", defaultValue = "pdf") String format) {
         byte[] body = farmerBillService.export(
-                farmerId, from, to, advancePayment, loanAmount, otherDeductions, format);
+                farmerId, from, to, format);
         String base = "farmer-bill-" + farmerId + "-" + from + "-to-" + to;
         return fileResponse(body, format, base);
+    }
+
+    @GetMapping("/farmer-bill/finalize")
+    public ResponseEntity<FarmerBillResponse> farmerBillFinalize(
+            @RequestParam Long farmerId,
+            @RequestParam("from") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam("to") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return ResponseEntity.ok(farmerBillService.generateFinalBill(
+                farmerId, from, to));
     }
 
     private static ResponseEntity<byte[]> fileResponse(byte[] body, String format, String baseName) {

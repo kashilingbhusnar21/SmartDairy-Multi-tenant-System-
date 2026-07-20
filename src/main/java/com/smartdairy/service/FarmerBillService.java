@@ -8,17 +8,16 @@ public interface FarmerBillService {
     FarmerBillResponse preview(
             Long farmerId,
             LocalDate from,
-            LocalDate to,
-            BigDecimal advancePayment,
-            BigDecimal loanAmount,
-            BigDecimal otherDeductions);
+            LocalDate to);
+
+    FarmerBillResponse generateFinalBill(
+            Long farmerId,
+            LocalDate from,
+            LocalDate to);
 
     byte[] export(
             Long farmerId,
             LocalDate from,
             LocalDate to,
-            BigDecimal advancePayment,
-            BigDecimal loanAmount,
-            BigDecimal otherDeductions,
             String format);
 }

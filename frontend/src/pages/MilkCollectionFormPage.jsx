@@ -3,10 +3,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import { createMilkCollection, getMilkCollection, updateMilkCollection } from "../services/milkCollections";
 import ErrorState from "../components/ui/ErrorState";
 import FarmerSelect from "../components/ui/FarmerSelect";
+import { getErrorMessage } from "../utils/errorMessage";
+import { getOperationalRecordDateWindow } from "../utils/recordDateWindow";
 
 function MilkCollectionFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const operationalDateWindow = getOperationalRecordDateWindow();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
@@ -57,7 +60,7 @@ function MilkCollectionFormPage() {
       }
       navigate("/milk-collections");
     } catch (err) {
-      setError("Failed to save milk collection");
+      setError(getErrorMessage(err, "Failed to save milk collection"));
     } finally {
       setLoading(false);
     }
@@ -101,6 +104,8 @@ function MilkCollectionFormPage() {
               name="date"
               value={formData.date}
               onChange={handleChange}
+              min={!id ? operationalDateWindow.min : undefined}
+              max={!id ? operationalDateWindow.max : undefined}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               required
             />

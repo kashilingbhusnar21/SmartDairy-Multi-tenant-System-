@@ -26,6 +26,29 @@ public interface FeedPurchaseRepository extends JpaRepository<FeedPurchase, Long
     List<FeedPurchase> findOutstandingByAdminAndFarmer(@Param("admin") User admin, @Param("farmerId") Long farmerId);
 
     @Query("""
+            select f from FeedPurchase f
+            where f.admin = :admin and f.farmer.id = :farmerId
+              and f.remainingAmount > 0
+              and f.feedDate between :from and :to
+            order by f.feedDate, f.createdAt
+            """)
+    List<FeedPurchase> findOutstandingByAdminAndFarmerInDateRange(
+            @Param("admin") User admin,
+            @Param("farmerId") Long farmerId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to);
+
+    @Query("""
+            select coalesce(sum(f.remainingAmount), 0) from FeedPurchase f
+            where f.admin = :admin and f.feedDate between :from and :to and f.farmer.id = :farmerId
+            """)
+    BigDecimal sumOutstandingBetweenForAdminAndFarmer(
+            @Param("admin") User admin,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("farmerId") Long farmerId);
+
+    @Query("""
             select coalesce(sum(f.remainingAmount), 0) from FeedPurchase f
             where f.admin = :admin and f.farmer.id = :farmerId
             """)
@@ -82,7 +105,4 @@ public interface FeedPurchaseRepository extends JpaRepository<FeedPurchase, Long
             """)
     List<Object[]> sumAmountGroupedByDateForAdmin(
             @Param("admin") User admin, @Param("from") LocalDate from, @Param("to") LocalDate to);
-
-    @Query("select f from FeedPurchase f join fetch f.farmer farmer join fetch farmer.admin")
-    List<FeedPurchase> findAllWithFarmer();
 }

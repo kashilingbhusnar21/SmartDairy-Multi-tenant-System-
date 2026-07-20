@@ -71,6 +71,15 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             @Param("from") LocalDate from,
             @Param("to") LocalDate to);
 
-    @Query("select p from Payment p join fetch p.farmer f join fetch f.admin")
-    List<Payment> findAllWithFarmer();
+    @Query("""
+            select coalesce(sum(p.amount), 0) from Payment p
+            where p.admin = :admin and p.farmer.id = :farmerId
+              and p.status = :status and p.paymentDate between :from and :to
+            """)
+    BigDecimal sumAmountByAdminAndFarmerAndStatusAndPaymentDateBetween(
+            @Param("admin") User admin,
+            @Param("farmerId") Long farmerId,
+            @Param("status") PaymentStatus status,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to);
 }

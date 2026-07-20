@@ -5,19 +5,30 @@ import com.smartdairy.dto.PaymentDashboardStatsResponse;
 import com.smartdairy.dto.PaymentResponse;
 import com.smartdairy.dto.PaymentSummaryResponse;
 import com.smartdairy.entity.Farmer;
+import com.smartdairy.entity.FarmerFinancialAccount;
+import com.smartdairy.entity.FarmerFinancialTransaction;
 import com.smartdairy.entity.MilkCollection;
 import com.smartdairy.entity.Payment;
 import com.smartdairy.entity.Payment.PaymentStatus;
 import com.smartdairy.entity.User;
 import com.smartdairy.exception.ResourceNotFoundException;
+import com.smartdairy.repository.FarmerFinancialAccountRepository;
+import com.smartdairy.repository.FarmerFinancialTransactionRepository;
 import com.smartdairy.repository.FarmerRepository;
 import com.smartdairy.repository.FeedPurchaseRepository;
 import com.smartdairy.repository.MilkCollectionRepository;
 import com.smartdairy.repository.PaymentRepository;
 import com.smartdairy.service.FeedPurchaseService;
+import com.smartdairy.service.FarmerFinancialAccountService;
+import com.smartdairy.service.FarmerFinancialSettlementService;
 import com.smartdairy.service.PaymentReceiptPdfService;
 import com.smartdairy.service.PaymentService;
+import com.smartdairy.service.PaymentSettlementService;
 import com.smartdairy.service.UserService;
+import com.smartdairy.service.impl.SmsService;
+import com.smartdairy.util.FinancialMath;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -35,8 +46,13 @@ public class PaymentServiceImpl implements PaymentService {
     private final MilkCollectionRepository milkCollectionRepository;
     private final FarmerRepository farmerRepository;
     private final FeedPurchaseRepository feedPurchaseRepository;
+    private final FarmerFinancialAccountRepository financialAccountRepository;
+    private final FarmerFinancialTransactionRepository financialTransactionRepository;
     private final PaymentReceiptPdfService paymentReceiptPdfService;
     private final FeedPurchaseService feedPurchaseService;
+    private final FarmerFinancialAccountService financialAccountService;
+    private final FarmerFinancialSettlementService financialSettlementService;
+    private final PaymentSettlementService paymentSettlementService;
     private final SmsService smsService;
     private final UserService userService;
 
@@ -57,17 +73,30 @@ public class PaymentServiceImpl implements PaymentService {
                 .milkCollection(collection)
                 .amount(collection.getTotalAmount())
                 .grossAmount(collection.getTotalAmount())
-                .feedDeductionAmount(java.math.BigDecimal.ZERO.setScale(2))
+                .feedDeductionAmount(BigDecimal.ZERO.setScale(2))
                 .status(PaymentStatus.PENDING)
                 .build();
         payment = paymentRepository.save(payment);
 
-        java.math.BigDecimal deducted = feedPurchaseService.applyOutstandingDeductionForPayment(
+        BigDecimal deducted = feedPurchaseService.applyOutstandingDeductionForPayment(
                 collection.getFarmer().getId(), collection.getTotalAmount(), payment.getId());
         payment.setFeedDeductionAmount(deducted);
-        payment.setAmount(collection.getTotalAmount().subtract(deducted).setScale(2, java.math.RoundingMode.HALF_UP));
-        payment = paymentRepository.save(payment);
-        return toResponse(payment);
+        payment.setAmount(collection.getTotalAmount().subtract(deducted).setScale(2, RoundingMode.HALF_UP));
+        
+        // Create recovery transaction to update ledger balance
+        if (deducted.compareTo(BigDecimal.ZERO) > 0) {
+            FarmerFinancialAccount financialAccount = financialAccountService.getOrCreateAccountByFarmer(
+                    collection.getFarmer().getId());
+            financialSettlementService.recoverFeedForPayment(
+                    admin,
+                    collection.getFarmer(),
+                    financialAccount,
+                    deducted,
+                    payment.getId());
+        }
+        
+        final Payment savedPayment = paymentRepository.save(payment);
+        return toResponse(savedPayment);
     }
 
     @Override
@@ -78,11 +107,13 @@ public class PaymentServiceImpl implements PaymentService {
         if (payment.getStatus() != PaymentStatus.PENDING) {
             throw new IllegalArgumentException("Only pending payments can be marked as paid");
         }
-        payment.setStatus(PaymentStatus.PAID);
-        payment.setPaymentDate(request.getPaymentDate());
-        payment.setPaymentMethod(request.getPaymentMethod());
-        payment.setRemarks(request.getRemarks());
-        payment = paymentRepository.save(payment);
+
+        var settlementResult = paymentSettlementService.settlePayment(paymentId, request);
+        
+        if (!settlementResult.success()) {
+            throw new IllegalStateException(settlementResult.message());
+        }
+
         try {
             smsService.sendSms(
                     payment.getFarmer().getMobileNumber(),
@@ -96,7 +127,7 @@ public class PaymentServiceImpl implements PaymentService {
         } catch (Exception e) {
             System.out.println("Payment sms failed " + e.getMessage());
         }
-        return toResponse(payment);
+        return toResponse(settlementResult.payment());
     }
 
     @Override

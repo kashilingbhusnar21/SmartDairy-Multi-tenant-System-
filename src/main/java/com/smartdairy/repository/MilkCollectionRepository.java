@@ -93,7 +93,4 @@ public interface MilkCollectionRepository extends JpaRepository<MilkCollection, 
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("farmerId") Long farmerId);
-
-    @Query("select mc from MilkCollection mc join fetch mc.farmer f join fetch f.admin")
-    List<MilkCollection> findAllWithFarmer();
 }
