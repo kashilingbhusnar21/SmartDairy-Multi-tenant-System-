@@ -29,6 +29,7 @@ public class FarmerServiceImpl implements FarmerService {
 
         Farmer farmer = mapToEntity(new Farmer(), request);
         farmer.setAdmin(admin);
+        farmer.setActive(true);
         farmer = farmerRepository.save(farmer);
 
         try {
@@ -111,6 +112,51 @@ public class FarmerServiceImpl implements FarmerService {
                 .toList();
     }
 
+    @Override
+    @Transactional
+    public FarmerResponse deactivateFarmer(Long id) {
+        User admin = userService.getLoggedInUser();
+        Farmer existing = farmerRepository.findByIdAndAdmin(id, admin)
+                .orElseThrow(() -> new ResourceNotFoundException("Farmer not found with id: " + id));
+        existing.setActive(false);
+        existing = farmerRepository.save(existing);
+        return mapToResponse(existing);
+    }
+
+    @Override
+    @Transactional
+    public FarmerResponse activateFarmer(Long id) {
+        User admin = userService.getLoggedInUser();
+        Farmer existing = farmerRepository.findByIdAndAdmin(id, admin)
+                .orElseThrow(() -> new ResourceNotFoundException("Farmer not found with id: " + id));
+        existing.setActive(true);
+        existing = farmerRepository.save(existing);
+        return mapToResponse(existing);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FarmerResponse> getInactiveFarmers() {
+        User admin = userService.getLoggedInUser();
+        return farmerRepository.findByAdminAndActiveOrderByFullNameAsc(admin, false).stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FarmerResponse> searchInactiveFarmers(String query) {
+        if (query == null || query.isBlank()) {
+            return getInactiveFarmers();
+        }
+
+        User admin = userService.getLoggedInUser();
+        String trimmed = query.trim();
+        return farmerRepository.searchByAdminAndActive(admin, false, trimmed).stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
     private Farmer mapToEntity(Farmer farmer, FarmerRequest request) {
         farmer.setFullName(request.getFullName());
         farmer.setMobileNumber(request.getMobileNumber());
@@ -132,6 +178,7 @@ public class FarmerServiceImpl implements FarmerService {
                 .aadhaarNumber(farmer.getAadhaarNumber())
                 .bankAccountNumber(farmer.getBankAccountNumber())
                 .ifscCode(farmer.getIfscCode())
+                .active(farmer.getActive())
                 .build();
     }
 }

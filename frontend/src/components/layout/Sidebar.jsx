@@ -22,7 +22,7 @@ import {
 const navClass = ({ isActive }) =>
   `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
     isActive
-      ? "bg-emerald-600 text-white shadow-lg border-l-4 border-emerald-400"
+      ? "bg-emerald-600 text-white shadow-md border-l-4 border-emerald-400"
       : "text-slate-700 hover:bg-emerald-50 hover:translate-x-1"
   }`;
 
@@ -86,7 +86,7 @@ function Sidebar({ onNavigate }) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto scrollbar-hide">
           <NavLink to="/home" className={navClass} onClick={handleNav}>
             <LayoutDashboard size={18} />
             <span>Dashboard</span>

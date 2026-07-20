@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -48,10 +49,26 @@ public class FarmerController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{id}/deactivate")
+    public ResponseEntity<FarmerResponse> deactivateFarmer(@PathVariable Long id) {
+        return ResponseEntity.ok(farmerService.deactivateFarmer(id));
+    }
+
+    @PatchMapping("/{id}/activate")
+    public ResponseEntity<FarmerResponse> activateFarmer(@PathVariable Long id) {
+        return ResponseEntity.ok(farmerService.activateFarmer(id));
+    }
+
     @GetMapping
     public ResponseEntity<List<FarmerResponse>> getAllFarmers(
             @RequestParam(value = "q", required = false) String query) {
         return ResponseEntity.ok(farmerService.searchFarmers(query));
+    }
+
+    @GetMapping("/inactive")
+    public ResponseEntity<List<FarmerResponse>> getInactiveFarmers(
+            @RequestParam(value = "q", required = false) String query) {
+        return ResponseEntity.ok(farmerService.searchInactiveFarmers(query));
     }
 
     @GetMapping("/{id}")

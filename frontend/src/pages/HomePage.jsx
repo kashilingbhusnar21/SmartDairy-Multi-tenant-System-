@@ -42,19 +42,7 @@ function HomePage() {
   }, []);
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      {/* Dashboard Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl shadow-lg">
-            <Activity className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-slate-800">Dashboard</h1>
-            <p className="text-slate-500 text-sm">Overview of your dairy operations</p>
-          </div>
-        </div>
-      </div>
+    <main className="max-w-7xl mx-auto">
 
       {statsLoading ? (
         <PageLoader label="Loading..." />
@@ -62,12 +50,12 @@ function HomePage() {
         <>
           {/* Milk Statistics */}
           <section className="grid md:grid-cols-3 gap-6 mb-8">
-            <article className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200/60 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <article className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60 hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-emerald-100 rounded-xl">
-                  <Milk className="w-6 h-6 text-emerald-600" />
+                <div className="p-4 bg-emerald-100 rounded-xl">
+                  <Milk className="w-7 h-7 text-emerald-600" />
                 </div>
-                <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">Today</span>
+                <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">Today</span>
               </div>
               <h3 className="text-sm font-semibold text-slate-600 mb-1">Total Milk</h3>
               <p className="text-3xl font-bold text-slate-800 mb-1">
@@ -75,12 +63,12 @@ function HomePage() {
               </p>
               <p className="text-slate-500 text-sm">Liters collected</p>
             </article>
-            <article className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200/60 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <article className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60 hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-emerald-100 rounded-xl">
-                  <DollarSign className="w-6 h-6 text-emerald-600" />
+                <div className="p-4 bg-emerald-100 rounded-xl">
+                  <DollarSign className="w-7 h-7 text-emerald-600" />
                 </div>
-                <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">Today</span>
+                <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">Today</span>
               </div>
               <h3 className="text-sm font-semibold text-slate-600 mb-1">Total Amount</h3>
               <p className="text-3xl font-bold text-slate-800 mb-1">
@@ -88,12 +76,12 @@ function HomePage() {
               </p>
               <p className="text-slate-500 text-sm">Total value</p>
             </article>
-            <article className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200/60 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <article className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60 hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-emerald-100 rounded-xl">
-                  <FileText className="w-6 h-6 text-emerald-600" />
+                <div className="p-4 bg-emerald-100 rounded-xl">
+                  <FileText className="w-7 h-7 text-emerald-600" />
                 </div>
-                <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">Today</span>
+                <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">Today</span>
               </div>
               <h3 className="text-sm font-semibold text-slate-600 mb-1">Today's Entries</h3>
               <p className="text-3xl font-bold text-slate-800 mb-1">
@@ -108,10 +96,10 @@ function HomePage() {
             <h2 className="text-xl font-bold text-slate-800 mb-4">Payment Summary</h2>
           </div>
           <section className="grid md:grid-cols-3 gap-6 mb-8">
-            <article className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200/60 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <article className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60 hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-amber-100 rounded-xl">
-                  <Clock className="w-6 h-6 text-amber-600" />
+                <div className="p-4 bg-amber-100 rounded-xl">
+                  <Clock className="w-7 h-7 text-amber-600" />
                 </div>
               </div>
               <h3 className="text-sm font-semibold text-slate-600 mb-1">Pending Payments</h3>
@@ -120,12 +108,12 @@ function HomePage() {
               </p>
               <p className="text-slate-500 text-sm">₹ {payStats?.pendingTotalAmount ?? "--"} unpaid total</p>
             </article>
-            <article className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200/60 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <article className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60 hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-emerald-100 rounded-xl">
-                  <CheckCircle className="w-6 h-6 text-emerald-600" />
+                <div className="p-4 bg-emerald-100 rounded-xl">
+                  <CheckCircle className="w-7 h-7 text-emerald-600" />
                 </div>
-                <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">Week</span>
+                <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">Week</span>
               </div>
               <h3 className="text-sm font-semibold text-slate-600 mb-1">Paid This Week</h3>
               <p className="text-3xl font-bold text-slate-800 mb-1">
@@ -133,12 +121,12 @@ function HomePage() {
               </p>
               <p className="text-slate-500 text-sm">{payStats?.paidThisWeekCount ?? "--"} transactions</p>
             </article>
-            <article className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200/60 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <article className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60 hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-emerald-100 rounded-xl">
-                  <Calendar className="w-6 h-6 text-emerald-600" />
+                <div className="p-4 bg-emerald-100 rounded-xl">
+                  <Calendar className="w-7 h-7 text-emerald-600" />
                 </div>
-                <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">Month</span>
+                <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">Month</span>
               </div>
               <h3 className="text-sm font-semibold text-slate-600 mb-1">Paid This Month</h3>
               <p className="text-3xl font-bold text-slate-800 mb-1">
@@ -151,14 +139,14 @@ function HomePage() {
       )}
 
       {/* API Status Card */}
-      <section className="mt-8 bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl border border-slate-200 p-6 shadow-lg">
+      <section className="mt-8 bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm">
         <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-emerald-100 rounded-lg">
-            <Shield className="w-5 h-5 text-emerald-600" />
+          <div className="p-3 bg-emerald-100 rounded-xl">
+            <Shield className="w-6 h-6 text-emerald-600" />
           </div>
           <h3 className="font-semibold text-slate-800">Protected API Status</h3>
         </div>
-        <p className="text-slate-600 text-sm ml-10">{secureMessage}</p>
+        <p className="text-slate-600 text-sm ml-12">{secureMessage}</p>
       </section>
     </main>
   );
