@@ -38,4 +38,17 @@ public interface FarmerRepository extends JpaRepository<Farmer, Long> {
             order by f.fullName
             """)
     List<Farmer> searchByAdmin(@Param("admin") User admin, @Param("query") String query);
+
+    List<Farmer> findByAdminAndActiveOrderByFullNameAsc(User admin, boolean active);
+
+    @Query("""
+            select f from Farmer f
+            where f.admin = :admin
+              and f.active = :active
+              and (lower(f.fullName) like lower(concat('%', :query, '%'))
+                   or lower(f.village) like lower(concat('%', :query, '%'))
+                   or cast(f.id as string) like concat('%', :query, '%'))
+            order by f.fullName
+            """)
+    List<Farmer> searchByAdminAndActive(@Param("admin") User admin, @Param("active") boolean active, @Param("query") String query);
 }

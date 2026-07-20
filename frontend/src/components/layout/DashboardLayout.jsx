@@ -12,7 +12,7 @@ function DashboardLayout() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-[#F8FAFC] flex">
       {mobileOpen ? (
         <button
           type="button"
@@ -33,7 +33,7 @@ function DashboardLayout() {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
-        <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white/95 backdrop-blur border-b border-slate-200">
+        <header className="sticky top-0 z-30 flex items-center justify-between px-6 bg-white border-b border-slate-200" style={{ height: '80px' }}>
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -45,18 +45,31 @@ function DashboardLayout() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
+            <div className="flex items-center gap-4">
+              <div className="w-1 h-11 bg-emerald-600 rounded-full transition-colors duration-300"></div>
+              <div>
+                <p className="text-sm font-medium text-slate-600">Welcome back,</p>
+                <h1 className="text-xl font-bold text-slate-800">{dairy?.ownerName?.split(' ')[0] || 'Owner'} 👋</h1>
+                <p className="text-sm text-slate-500">Here's what's happening with your dairy today</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
             {dairy?.dairyLogo ? (
-              <img src={dairy.dairyLogo} alt="Dairy logo" className="w-12 h-12 rounded object-cover border border-slate-200" />
-            ) : null}
+              <img src={dairy.dairyLogo} alt="Dairy logo" className="w-10 h-10 rounded-lg object-cover border border-slate-200" />
+            ) : (
+              <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center border border-slate-200">
+                <span className="text-lg">🐄</span>
+              </div>
+            )}
+            <div className="hidden sm:block text-right">
+              <p className="text-sm font-semibold text-slate-800">{dairy?.dairyName || 'My Dairy'}</p>
+              <p className="text-xs text-slate-500">{dairy?.contactNumber || 'Contact'}</p>
+            </div>
           </div>
-          <div className="flex-1 text-center min-w-0 px-4">
-            <p className="text-xl font-bold text-emerald-800 truncate">{dairy?.dairyName || "My Dairy"}</p>
-            <p className="text-sm text-slate-500 truncate">{dairy?.ownerName || "Owner Name"} • {dairy?.contactNumber || "NA"}</p>
-          </div>
-          <div className="w-12 hidden lg:block"></div>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-6 max-w-7xl w-full mx-auto">
           <Outlet />
         </main>
       </div>

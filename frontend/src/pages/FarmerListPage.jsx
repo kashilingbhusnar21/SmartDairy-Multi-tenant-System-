@@ -5,7 +5,7 @@ import ErrorState from "../components/ui/ErrorState";
 import PageLoader from "../components/ui/PageLoader";
 import Pagination from "../components/ui/Pagination";
 import { usePagination } from "../hooks/usePagination";
-import { deleteFarmer, listFarmers } from "../services/farmers";
+import { deactivateFarmer, activateFarmer, listFarmers } from "../services/farmers";
 import { getErrorMessage } from "../utils/errorMessage";
 
 const PAGE_SIZE = 8;
@@ -42,12 +42,22 @@ function FarmerListPage() {
     load(query);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this farmer?')) return;
+  const handleDeactivate = async (id) => {
+    if (!window.confirm('Are you sure you want to deactivate this farmer? This will preserve all records but hide the farmer from active lists.')) return;
     try {
-      await deleteFarmer(id);
-      setFarmers((prev) => prev.filter((f) => f.id !== id));
-      toast.success('Farmer deleted successfully');
+      await deactivateFarmer(id);
+      load(query);
+      toast.success('Farmer deactivated successfully');
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Error occurred'));
+    }
+  };
+
+  const handleActivate = async (id) => {
+    try {
+      await activateFarmer(id);
+      load(query);
+      toast.success('Farmer activated successfully');
     } catch (err) {
       toast.error(getErrorMessage(err, 'Error occurred'));
     }
@@ -112,6 +122,7 @@ function FarmerListPage() {
                   <th className="px-3 py-2 text-left font-semibold text-slate-700">Phone</th>
                   <th className="px-3 py-2 text-left font-semibold text-slate-700">Address</th>
                   <th className="px-3 py-2 text-left font-semibold text-slate-700">Aadhaar</th>
+                  <th className="px-3 py-2 text-left font-semibold text-slate-700">Status</th>
                   <th className="px-3 py-2 text-left font-semibold text-slate-700">Actions</th>
                 </tr>
               </thead>
@@ -123,6 +134,17 @@ function FarmerListPage() {
                     <td className="px-3 py-2">{f.mobileNumber}</td>
                     <td className="px-3 py-2">{f.village}</td>
                     <td className="px-3 py-2">{f.aadhaarNumber}</td>
+                    <td className="px-3 py-2">
+                      {f.active ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+                          Active
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
+                          Inactive
+                        </span>
+                      )}
+                    </td>
                     <td className="px-3 py-2 space-x-2 whitespace-nowrap">
                       <Link
                         to={`/farmers/${f.id}/payments`}
@@ -139,13 +161,23 @@ function FarmerListPage() {
                       <Link to={`/farmers/${f.id}/edit`} className="text-emerald-700 hover:underline">
                         Edit
                       </Link>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(f.id)}
-                        className="text-red-600 hover:underline"
-                      >
-                        Delete
-                      </button>
+                      {f.active ? (
+                        <button
+                          type="button"
+                          onClick={() => handleDeactivate(f.id)}
+                          className="text-red-600 hover:underline"
+                        >
+                          Deactivate
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleActivate(f.id)}
+                          className="text-emerald-600 hover:underline"
+                        >
+                          Activate
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

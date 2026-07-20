@@ -19,4 +19,12 @@ public interface FarmerService {
     List<FarmerResponse> getAllFarmers();
 
     List<FarmerResponse> searchFarmers(String query);
+
+    FarmerResponse deactivateFarmer(Long id);
+
+    FarmerResponse activateFarmer(Long id);
+
+    List<FarmerResponse> getInactiveFarmers();
+
+    List<FarmerResponse> searchInactiveFarmers(String query);
 }

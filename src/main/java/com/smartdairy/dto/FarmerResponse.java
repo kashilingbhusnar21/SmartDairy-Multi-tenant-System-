@@ -14,4 +14,5 @@ public class FarmerResponse {
     private String aadhaarNumber;
     private String bankAccountNumber;
     private String ifscCode;
+    private Boolean active;
 }
