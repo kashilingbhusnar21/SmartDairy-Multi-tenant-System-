@@ -14,6 +14,7 @@ import {
   listFeedPurchases,
 } from "../services/feedPurchases";
 import { getErrorMessage } from "../utils/errorMessage";
+import { getOperationalRecordDateWindow } from "../utils/recordDateWindow";
 
 const PAGE_SIZE = 10;
 
@@ -32,6 +33,7 @@ function monthRangeISO() {
 }
 
 function FeedPurchasesPage() {
+  const operationalDateWindow = getOperationalRecordDateWindow();
   const m = monthRangeISO();
   const [from, setFrom] = useState(m.from);
   const [to, setTo] = useState(m.to);
@@ -155,7 +157,16 @@ function FeedPurchasesPage() {
         />
         <div>
           <label className="block text-xs text-slate-600 mb-1">Date</label>
-          <input name="feedDate" type="date" value={form.feedDate} onChange={onChange} required className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+          <input
+            name="feedDate"
+            type="date"
+            value={form.feedDate}
+            onChange={onChange}
+            min={operationalDateWindow.min}
+            max={operationalDateWindow.max}
+            required
+            className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
+          />
         </div>
         <div>
           <label className="block text-xs text-slate-600 mb-1">Feed Type</label>

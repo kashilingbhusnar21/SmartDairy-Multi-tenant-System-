@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = "https://smart-dairy-backend-production-4a46.up.railway.app/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
 const TOKEN_KEY = "smart_dairy_token";
 
 // Create axios instance with default configuration
@@ -32,9 +32,22 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
+    // Handle 401 Unauthorized - token expired or invalid
     if (error.response?.status === 401) {
       localStorage.removeItem(TOKEN_KEY);
       window.location.href = '/login';
+    }
+    // Handle 403 Forbidden - insufficient permissions
+    if (error.response?.status === 403) {
+      console.error('Access forbidden:', error.response.data);
+    }
+    // Handle network errors (backend unavailable)
+    if (!error.response && error.code === 'ERR_NETWORK') {
+      console.error('Network error: Backend may be unavailable at', API_BASE_URL);
+    }
+    // Handle timeout errors
+    if (error.code === 'ECONNABORTED') {
+      console.error('Request timeout: Backend took too long to respond');
     }
     return Promise.reject(error);
   }

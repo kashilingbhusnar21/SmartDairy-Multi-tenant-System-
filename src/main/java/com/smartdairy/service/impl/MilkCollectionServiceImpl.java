@@ -11,6 +11,7 @@ import com.smartdairy.repository.FarmerRepository;
 import com.smartdairy.repository.MilkCollectionRepository;
 import com.smartdairy.service.MilkCollectionService;
 import com.smartdairy.service.MilkPricingService;
+import com.smartdairy.service.OperationalRecordDateValidator;
 import com.smartdairy.service.UserService;
 import java.time.LocalDate;
 import java.util.List;
@@ -27,10 +28,12 @@ public class MilkCollectionServiceImpl implements MilkCollectionService {
     private final MilkPricingService milkPricingService;
     private final SmsService smsService;
     private final UserService userService;
+    private final OperationalRecordDateValidator operationalRecordDateValidator;
 
     @Override
     @Transactional
     public MilkCollectionResponse create(MilkCollectionRequest request) {
+        operationalRecordDateValidator.validateCreateDate(request.getDate());
         User admin = userService.getLoggedInUser();
         Farmer farmer = findFarmerForAdmin(request.getFarmerId(), admin);
 
@@ -127,6 +130,16 @@ public class MilkCollectionServiceImpl implements MilkCollectionService {
     }
 
     private void applyRequest(MilkCollection entity, Farmer farmer, MilkCollectionRequest request) {
+        java.math.BigDecimal fat = request.getFatPercentage();
+        java.math.BigDecimal snf = request.getSnfPercentage();
+
+        if (fat.compareTo(java.math.BigDecimal.valueOf(2.5)) < 0 || fat.compareTo(java.math.BigDecimal.valueOf(9.0)) > 0) {
+            throw new IllegalArgumentException("FAT must be between 2.5 and 9.0");
+        }
+        if (snf.compareTo(java.math.BigDecimal.valueOf(7.5)) < 0 || snf.compareTo(java.math.BigDecimal.valueOf(9.0)) > 0) {
+            throw new IllegalArgumentException("SNF must be between 7.5 and 9.0");
+        }
+
         entity.setFarmer(farmer);
         entity.setDate(request.getDate());
         entity.setShift(request.getShift());

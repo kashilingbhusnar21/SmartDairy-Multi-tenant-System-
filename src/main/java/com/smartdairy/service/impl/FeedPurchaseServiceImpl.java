@@ -12,15 +12,20 @@ import com.smartdairy.dto.FeedPurchaseRequest;
 import com.smartdairy.dto.FeedPurchaseResponse;
 import com.smartdairy.dto.FeedSummaryResponse;
 import com.smartdairy.entity.Farmer;
+import com.smartdairy.entity.FarmerFinancialAccount;
+import com.smartdairy.entity.FarmerFinancialTransaction;
 import com.smartdairy.entity.FeedPurchase;
 import com.smartdairy.entity.Payment;
 import com.smartdairy.entity.User;
 import com.smartdairy.exception.ResourceNotFoundException;
+import com.smartdairy.repository.FarmerFinancialAccountRepository;
+import com.smartdairy.repository.FarmerFinancialTransactionRepository;
 import com.smartdairy.repository.FarmerRepository;
 import com.smartdairy.repository.FeedPurchaseRepository;
 import com.smartdairy.repository.PaymentRepository;
 import com.smartdairy.service.DairyProfileService;
 import com.smartdairy.service.FeedPurchaseService;
+import com.smartdairy.service.OperationalRecordDateValidator;
 import com.smartdairy.service.UserService;
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
@@ -43,13 +48,17 @@ public class FeedPurchaseServiceImpl implements FeedPurchaseService {
     private final FeedPurchaseRepository feedPurchaseRepository;
     private final FarmerRepository farmerRepository;
     private final PaymentRepository paymentRepository;
+    private final FarmerFinancialAccountRepository financialAccountRepository;
+    private final FarmerFinancialTransactionRepository financialTransactionRepository;
     private final DairyProfileService dairyProfileService;
     private final com.smartdairy.service.SmsNotificationService smsNotificationService;
     private final UserService userService;
+    private final OperationalRecordDateValidator operationalRecordDateValidator;
 
     @Override
     @Transactional
     public FeedPurchaseResponse create(FeedPurchaseRequest request) {
+        operationalRecordDateValidator.validateCreateDate(request.getFeedDate());
         User admin = userService.getLoggedInUser();
         Farmer farmer = farmerRepository.findByIdAndAdmin(request.getFarmerId(), admin)
                 .orElseThrow(() -> new ResourceNotFoundException("Farmer not found with id: " + request.getFarmerId()));
@@ -70,6 +79,38 @@ public class FeedPurchaseServiceImpl implements FeedPurchaseService {
                 .notes(request.getNotes())
                 .build();
         f = feedPurchaseRepository.save(f);
+
+        FarmerFinancialAccount financialAccount = financialAccountRepository.findByAdminAndFarmer(admin, farmer)
+                .orElseGet(() -> {
+                    FarmerFinancialAccount account = FarmerFinancialAccount.builder()
+                            .admin(admin)
+                            .farmer(farmer)
+                            .pendingAdvance(BigDecimal.ZERO)
+                            .pendingLoan(BigDecimal.ZERO)
+                            .pendingOther(BigDecimal.ZERO)
+                            .build();
+                    return financialAccountRepository.save(account);
+                });
+
+        BigDecimal balanceBefore = financialAccount.getPendingOther();
+        BigDecimal newBalance = balanceBefore.add(total).setScale(2, RoundingMode.HALF_UP);
+        financialAccount.setPendingOther(newBalance);
+        financialAccountRepository.save(financialAccount);
+
+        FarmerFinancialTransaction transaction = FarmerFinancialTransaction.builder()
+                .account(financialAccount)
+                .farmer(farmer)
+                .admin(admin)
+                .transactionType(FarmerFinancialTransaction.FinancialTransactionType.FEED_PURCHASE_ADDED)
+                .amount(total)
+                .balanceBefore(balanceBefore)
+                .balanceAfter(newBalance)
+                .description("Feed purchase: " + f.getFeedType() + " - " + f.getFeedCompanyName())
+                .referenceType(FarmerFinancialTransaction.ReferenceType.SYSTEM)
+                .referenceId("FEED-" + f.getId())
+                .build();
+        financialTransactionRepository.save(transaction);
+
         String sms = smsNotificationService.sendFeedPurchaseNotification(f);
         return toResponse(f, sms);
     }

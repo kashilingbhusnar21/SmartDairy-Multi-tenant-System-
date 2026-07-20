@@ -27,4 +27,16 @@ public class AdvancedMilkReportResponse {
     /** Sum of all entry totalAmount in range (DB); should match sum of farmer row totals */
     private BigDecimal checksumTotalFromEntries;
     private boolean totalsMatch;
+    
+    private BigDecimal totalPendingAdvance;
+    private BigDecimal totalPendingLoan;
+    private BigDecimal totalPendingOther;
+    private BigDecimal totalPendingBalance;
+    
+    private BigDecimal totalAdvanceRecovered;
+    private BigDecimal totalLoanRecovered;
+    private BigDecimal totalOtherRecovered;
+    private BigDecimal totalRecovered;
+    
+    private BigDecimal grandTotalPayable;
 }

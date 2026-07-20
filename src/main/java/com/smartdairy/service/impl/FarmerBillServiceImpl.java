@@ -11,14 +11,23 @@ import com.lowagie.text.pdf.PdfWriter;
 import com.smartdairy.dto.FarmerBillLineItemResponse;
 import com.smartdairy.dto.FarmerBillResponse;
 import com.smartdairy.entity.Farmer;
+import com.smartdairy.entity.FarmerFinancialAccount;
+import com.smartdairy.entity.FarmerFinancialTransaction;
 import com.smartdairy.entity.MilkCollection;
 import com.smartdairy.entity.User;
 import com.smartdairy.exception.ResourceNotFoundException;
+import com.smartdairy.entity.FarmerBill;
+import com.smartdairy.repository.FarmerBillRepository;
+import com.smartdairy.repository.FarmerFinancialAccountRepository;
+import com.smartdairy.repository.FarmerFinancialTransactionRepository;
 import com.smartdairy.repository.FarmerRepository;
 import com.smartdairy.repository.FeedPurchaseRepository;
 import com.smartdairy.repository.MilkCollectionRepository;
 import com.smartdairy.service.DairyProfileService;
+import com.smartdairy.service.FarmerFinancialAccountService;
 import com.smartdairy.service.FarmerBillService;
+import com.smartdairy.service.FinancialCalculationService;
+import com.smartdairy.service.FinancialRecoveryService;
 import com.smartdairy.service.UserService;
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
@@ -42,24 +51,56 @@ public class FarmerBillServiceImpl implements FarmerBillService {
     private final FarmerRepository farmerRepository;
     private final MilkCollectionRepository milkCollectionRepository;
     private final FeedPurchaseRepository feedPurchaseRepository;
+    private final FarmerBillRepository farmerBillRepository;
+    private final FarmerFinancialAccountRepository financialAccountRepository;
+    private final FarmerFinancialAccountService financialAccountService;
+    private final FarmerFinancialTransactionRepository financialTransactionRepository;
     private final DairyProfileService dairyProfileService;
     private final UserService userService;
+    private final FinancialCalculationService financialCalculationService;
+    private final FinancialRecoveryService financialRecoveryService;
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public FarmerBillResponse preview(
             Long farmerId,
             LocalDate from,
-            LocalDate to,
-            BigDecimal advancePayment,
-            BigDecimal loanAmount,
-            BigDecimal otherDeductions) {
+            LocalDate to) {
         User admin = userService.getLoggedInUser();
         Farmer farmer = farmerRepository.findByIdAndAdmin(farmerId, admin)
                 .orElseThrow(() -> new ResourceNotFoundException("Farmer not found with id: " + farmerId));
         List<MilkCollection> rows =
                 milkCollectionRepository.findDetailedForAdminAndFarmerBetween(admin, farmerId, from, to);
         var dairy = dairyProfileService.getCurrentUserProfile();
+
+        FarmerFinancialAccount financialAccount = financialAccountRepository.findByAdminAndFarmer(admin, farmer)
+                .orElse(null);
+
+        BigDecimal pendingAdvance = financialAccount != null ? financialAccount.getPendingAdvance() : BigDecimal.ZERO;
+        BigDecimal pendingLoan = financialAccount != null ? financialAccount.getPendingLoan() : BigDecimal.ZERO;
+        BigDecimal pendingOther = financialAccount != null ? financialAccount.getPendingOther() : BigDecimal.ZERO;
+
+        BigDecimal adv = pendingAdvance;
+        BigDecimal loan = pendingLoan;
+        BigDecimal other = pendingOther;
+
+        var existingBills = farmerBillRepository.findByAdminAndFarmerIdAndFromDateAndToDate(admin, farmerId, from, to);
+        FarmerBill existingBill = null;
+        if (!existingBills.isEmpty()) {
+            existingBill = existingBills.get(0);
+            adv = existingBill.getAdvancePayment();
+            loan = existingBill.getLoanAmount();
+            other = existingBill.getOtherDeductions();
+            if (existingBills.size() > 1) {
+                List<Long> duplicateIds = new java.util.ArrayList<>();
+                for (int i = 1; i < existingBills.size(); i++) {
+                    duplicateIds.add(existingBills.get(i).getId());
+                }
+                if (!duplicateIds.isEmpty()) {
+                    farmerBillRepository.deleteAllById(duplicateIds);
+                }
+            }
+        }
 
         BigDecimal totalLiters = BigDecimal.ZERO;
         BigDecimal totalAmount = BigDecimal.ZERO;
@@ -85,20 +126,37 @@ public class FarmerBillServiceImpl implements FarmerBillService {
             snfWeighted = snfWeighted.add(m.getSnfPercentage().multiply(m.getQuantityLiters()));
         }
 
-        BigDecimal feedDeduction = feedPurchaseRepository
-                .sumTotalAmountBetweenForAdminAndFarmer(admin, from, to, farmerId)
-                .setScale(2, RoundingMode.HALF_UP);
-        BigDecimal adv = n(advancePayment);
-        BigDecimal loan = n(loanAmount);
-        BigDecimal other = n(otherDeductions);
-        BigDecimal finalPayable = totalAmount
-                .subtract(feedDeduction)
-                .subtract(adv)
-                .subtract(loan)
-                .subtract(other)
-                .setScale(2, RoundingMode.HALF_UP);
-        BigDecimal remainingBalance = feedPurchaseRepository.sumOutstandingByAdminAndFarmer(admin, farmerId)
-                .setScale(2, RoundingMode.HALF_UP);
+        var calculation = financialCalculationService.calculateBill(
+                farmerId, from, to, totalAmount, adv, loan, other);
+        
+        BigDecimal feedDeduction = calculation.feedDeduction();
+        BigDecimal finalPayable = calculation.netPayable();
+
+        FarmerBill bill;
+        if (existingBill != null) {
+            bill = existingBill;
+            bill.setTotalAmount(calculation.milkBillAmount());
+            bill.setFeedDeduction(feedDeduction);
+            bill.setAdvancePayment(adv);
+            bill.setLoanAmount(loan);
+            bill.setOtherDeductions(other);
+            bill.setFinalPayableAmount(finalPayable);
+            farmerBillRepository.save(bill);
+        } else {
+            bill = FarmerBill.builder()
+                    .admin(admin)
+                    .farmer(farmer)
+                    .fromDate(from)
+                    .toDate(to)
+                    .totalAmount(calculation.milkBillAmount())
+                    .feedDeduction(feedDeduction)
+                    .advancePayment(adv)
+                    .loanAmount(loan)
+                    .otherDeductions(other)
+                    .finalPayableAmount(finalPayable)
+                    .build();
+            farmerBillRepository.save(bill);
+        }
 
         return FarmerBillResponse.builder()
                 .invoiceNumber("INV-" + farmerId + "-" + from.toString().replace("-", "") + "-" + to.toString().replace("-", ""))
@@ -116,14 +174,69 @@ public class FarmerBillServiceImpl implements FarmerBillService {
                 .averageFat(div(totalLiters, fatWeighted))
                 .averageSnf(div(totalLiters, snfWeighted))
                 .averageRate(div(totalLiters, totalAmount))
-                .totalAmount(totalAmount.setScale(2, RoundingMode.HALF_UP))
+                .totalAmount(calculation.milkBillAmount())
                 .feedDeduction(feedDeduction)
                 .advancePayment(adv)
                 .loanAmount(loan)
                 .otherDeductions(other)
-                //.finalPayableAmount(finalPayable)
-                .remainingBalance(remainingBalance)
+                .finalPayableAmount(finalPayable)
+                .pendingAdvance(calculation.pendingAdvanceBefore())
+                .pendingLoan(calculation.pendingLoanBefore())
+                .pendingOther(calculation.pendingOtherBefore())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public FarmerBillResponse generateFinalBill(
+            Long farmerId,
+            LocalDate from,
+            LocalDate to) {
+        User admin = userService.getLoggedInUser();
+        Farmer farmer = farmerRepository.findByIdAndAdmin(farmerId, admin)
+                .orElseThrow(() -> new ResourceNotFoundException("Farmer not found with id: " + farmerId));
+
+        FarmerFinancialAccount financialAccount = financialAccountService.getOrCreateAccountByFarmer(farmerId);
+
+        BigDecimal adv = financialAccount.getPendingAdvance();
+        BigDecimal loan = financialAccount.getPendingLoan();
+        BigDecimal other = financialAccount.getPendingOther();
+
+        var calculation = financialCalculationService.calculateBill(
+                farmerId, from, to, BigDecimal.ZERO, adv, loan, other);
+        
+        BigDecimal feedDeduction = calculation.feedDeduction();
+        BigDecimal totalOtherRecovery = other;
+        
+        if (adv.compareTo(financialAccount.getPendingAdvance()) > 0) {
+            throw new IllegalArgumentException("Advance payment cannot exceed pending advance. Pending: " + financialAccount.getPendingAdvance() + ", Requested: " + adv);
+        }
+        if (loan.compareTo(financialAccount.getPendingLoan()) > 0) {
+            throw new IllegalArgumentException("Loan recovery cannot exceed pending loan. Pending: " + financialAccount.getPendingLoan() + ", Requested: " + loan);
+        }
+        if (totalOtherRecovery.compareTo(financialAccount.getPendingOther()) > 0) {
+            throw new IllegalArgumentException("Total other deduction recovery cannot exceed pending other. Pending: " + financialAccount.getPendingOther() + ", Requested: " + totalOtherRecovery);
+        }
+
+        FarmerBill bill = FarmerBill.builder()
+                .admin(admin)
+                .farmer(farmer)
+                .fromDate(from)
+                .toDate(to)
+                .totalAmount(calculation.milkBillAmount())
+                .feedDeduction(feedDeduction)
+                .advancePayment(adv)
+                .loanAmount(loan)
+                .otherDeductions(other)
+                .finalPayableAmount(calculation.netPayable())
+                .finalized(true)
+                .finalizedAt(java.time.Instant.now())
+                .build();
+        bill = farmerBillRepository.save(bill);
+
+        financialRecoveryService.recoverBillDeductions(admin, farmer, financialAccount, bill);
+
+        return preview(farmerId, from, to);
     }
 
     @Override
@@ -132,11 +245,8 @@ public class FarmerBillServiceImpl implements FarmerBillService {
             Long farmerId,
             LocalDate from,
             LocalDate to,
-            BigDecimal advancePayment,
-            BigDecimal loanAmount,
-            BigDecimal otherDeductions,
             String format) {
-        FarmerBillResponse bill = preview(farmerId, from, to, advancePayment, loanAmount, otherDeductions);
+        FarmerBillResponse bill = preview(farmerId, from, to);
         boolean xlsx = format != null && (format.equalsIgnoreCase("xlsx") || format.equalsIgnoreCase("excel"));
         return xlsx ? excel(bill) : pdf(bill);
     }
@@ -191,8 +301,7 @@ public class FarmerBillServiceImpl implements FarmerBillService {
             doc.add(new Paragraph("Advance Payment: ₹ " + b.getAdvancePayment(), s));
             doc.add(new Paragraph("Loan Amount: ₹ " + b.getLoanAmount(), s));
             doc.add(new Paragraph("Other Deductions: ₹ " + b.getOtherDeductions(), s));
-         //  doc.add(new Paragraph("Final Payable Amount: ₹ " + b.getFinalPayableAmount(), s));
-            doc.add(new Paragraph("Remaining Balance: ₹ " + b.getRemainingBalance(), s));
+            doc.add(new Paragraph("Final Payable Amount: ₹ " + b.getFinalPayableAmount(), s));
             doc.add(new Paragraph(" ", s));
             doc.add(new Paragraph("Farmer Signature: ____________________", s));
             doc.add(new Paragraph("Dairy Owner Signature: ____________________", s));
@@ -238,8 +347,7 @@ public class FarmerBillServiceImpl implements FarmerBillService {
             sh.createRow(r++).createCell(0).setCellValue("Advance Payment: " + b.getAdvancePayment());
             sh.createRow(r++).createCell(0).setCellValue("Loan Amount: " + b.getLoanAmount());
             sh.createRow(r++).createCell(0).setCellValue("Other Deductions: " + b.getOtherDeductions());
-          // sh.createRow(r++).createCell(0).setCellValue("Final Payable Amount: " + b.getFinalPayableAmount());
-            sh.createRow(r++).createCell(0).setCellValue("Remaining Balance: " + b.getRemainingBalance());
+            sh.createRow(r++).createCell(0).setCellValue("Final Payable Amount: " + b.getFinalPayableAmount());
             sh.createRow(r++).createCell(0).setCellValue("Farmer Signature: ____________________");
             sh.createRow(r++).createCell(0).setCellValue("Dairy Owner Signature: ____________________");
             for (int i = 0; i < 7; i++) sh.autoSizeColumn(i);

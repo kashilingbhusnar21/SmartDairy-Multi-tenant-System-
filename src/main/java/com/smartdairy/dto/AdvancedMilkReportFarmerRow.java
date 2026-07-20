@@ -20,4 +20,16 @@ public class AdvancedMilkReportFarmerRow {
     private BigDecimal averageFat;
     private BigDecimal averageSnf;
     private BigDecimal averageRatePerLiter;
+    
+    private BigDecimal pendingAdvance;
+    private BigDecimal pendingLoan;
+    private BigDecimal pendingOther;
+    private BigDecimal totalPending;
+    
+    private BigDecimal advanceRecovered;
+    private BigDecimal loanRecovered;
+    private BigDecimal otherRecovered;
+    private BigDecimal totalRecovered;
+    
+    private BigDecimal finalPayableAmount;
 }

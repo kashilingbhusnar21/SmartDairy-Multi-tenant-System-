@@ -34,7 +34,10 @@ public class FarmerBillResponse {
     private BigDecimal loanAmount;
     private BigDecimal otherDeductions;
 
-    //private BigDecimal finalPayableAmount;
-    private BigDecimal remainingBalance;
+    private BigDecimal finalPayableAmount;
+
+    private BigDecimal pendingAdvance;
+    private BigDecimal pendingLoan;
+    private BigDecimal pendingOther;
 
 }

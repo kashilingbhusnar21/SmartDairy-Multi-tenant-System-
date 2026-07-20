@@ -16,14 +16,37 @@ function monthStartISO() {
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
 }
 
+function formatDailyAmount(value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) {
+    return value ?? "";
+  }
+
+  return `₹${amount.toLocaleString("en-IN", {
+    minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function resolveDailyAmount(row) {
+  if (row.amount !== null && row.amount !== undefined && row.amount !== "") {
+    return formatDailyAmount(row.amount);
+  }
+
+  const liters = Number(row.liters);
+  const rate = Number(row.rate);
+  if (!Number.isFinite(liters) || !Number.isFinite(rate)) {
+    return "";
+  }
+
+  return formatDailyAmount(liters * rate);
+}
+
 function FarmerBillPage() {
   const { farmerId } = useParams();
   const [selectedFarmerId, setSelectedFarmerId] = useState(farmerId || "");
   const [from, setFrom] = useState(monthStartISO());
   const [to, setTo] = useState(todayISO());
-  const [advancePayment, setAdvancePayment] = useState("0");
-  const [loanAmount, setLoanAmount] = useState("0");
-  const [otherDeductions, setOtherDeductions] = useState("0");
   const [bill, setBill] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -36,9 +59,6 @@ function FarmerBillPage() {
         farmerId: Number(selectedFarmerId),
         from,
         to,
-        advancePayment: Number(advancePayment || 0),
-        loanAmount: Number(loanAmount || 0),
-        otherDeductions: Number(otherDeductions || 0),
       });
       setBill(data);
     } catch (e) {
@@ -64,9 +84,6 @@ function FarmerBillPage() {
           farmerId: Number(selectedFarmerId),
           from,
           to,
-          advancePayment: Number(advancePayment || 0),
-          loanAmount: Number(loanAmount || 0),
-          otherDeductions: Number(otherDeductions || 0),
         },
         format
       );
@@ -92,7 +109,7 @@ function FarmerBillPage() {
         </div>
       </div>
 
-      <section className="bg-white border border-slate-200 rounded-xl p-4 grid md:grid-cols-6 gap-3">
+      <section className="bg-white border border-slate-200 rounded-xl p-4 grid md:grid-cols-4 gap-3">
         <div>
           <FarmerSelect
             value={selectedFarmerId}
@@ -112,18 +129,6 @@ function FarmerBillPage() {
         <div>
           <label className="block text-xs text-slate-600 mb-1">To</label>
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm" />
-        </div>
-        <div>
-          <label className="block text-xs text-slate-600 mb-1">Advance</label>
-          <input type="number" value={advancePayment} onChange={(e) => setAdvancePayment(e.target.value)} className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm" />
-        </div>
-        <div>
-          <label className="block text-xs text-slate-600 mb-1">Loan</label>
-          <input type="number" value={loanAmount} onChange={(e) => setLoanAmount(e.target.value)} className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm" />
-        </div>
-        <div>
-          <label className="block text-xs text-slate-600 mb-1">Other</label>
-          <input type="number" value={otherDeductions} onChange={(e) => setOtherDeductions(e.target.value)} className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm" />
         </div>
         <div className="flex items-end">
           <button type="button" onClick={load} disabled={!selectedFarmerId} className="w-full px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed">Preview</button>
@@ -174,31 +179,19 @@ function FarmerBillPage() {
                     <td className="px-3 py-2 text-right">{r.fat}</td>
                     <td className="px-3 py-2 text-right">{r.snf}</td>
                     <td className="px-3 py-2 text-right">{r.rate}</td>
-                    <td className="px-3 py-2 text-right">{r.amount}</td>
+                    <td className="px-3 py-2 text-right">{resolveDailyAmount(r)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="border border-slate-200 rounded-lg p-3 text-sm">
+          <div className="border border-slate-200 rounded-lg p-3 text-sm">
               <p><strong>Total Milk Quantity:</strong> {bill.totalMilkQuantity} L</p>
-              <p><strong>Average Fat:</strong> {bill.averageFat}</p>
+              <p><strong>Average FAT:</strong> {bill.averageFat}</p>
               <p><strong>Average SNF:</strong> {bill.averageSnf}</p>
-              <p><strong>Average Rate:</strong> {bill.averageRate}</p>
               <p><strong>Total Amount:</strong> ₹ {bill.totalAmount}</p>
             </div>
-            <div className="border border-slate-200 rounded-lg p-3 text-sm">
-              <p><strong>Feed Deduction:</strong> ₹ {bill.feedDeduction}</p>
-              <p><strong>Advance Payment:</strong> ₹ {bill.advancePayment}</p>
-              <p><strong>Loan Amount:</strong> ₹ {bill.loanAmount}</p>
-              <p><strong>Other Deductions:</strong> ₹ {bill.otherDeductions}</p>
-              <p className="mt-2"><strong>Final Payable Amount:</strong> ₹ {bill.finalPayableAmount}</p>
-              <p><strong>Remaining Balance:</strong> ₹ {bill.remainingBalance}</p>
-            </div>
-          </div>
-
           <div className="grid md:grid-cols-2 gap-6 pt-4">
             <div>
               <p className="text-sm text-slate-700">Farmer Signature</p>

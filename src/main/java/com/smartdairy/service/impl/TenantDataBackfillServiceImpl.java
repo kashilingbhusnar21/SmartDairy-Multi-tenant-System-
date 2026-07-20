@@ -53,34 +53,25 @@ public class TenantDataBackfillServiceImpl implements TenantDataBackfillService 
             }
         }
 
-        for (MilkCollection collection : milkCollectionRepository.findAllWithFarmer()) {
+        for (MilkCollection collection : milkCollectionRepository.findByAdmin(fallbackAdmin)) {
             if (collection.getAdmin() == null) {
-                User owner = collection.getFarmer().getAdmin() != null
-                        ? collection.getFarmer().getAdmin()
-                        : fallbackAdmin;
-                collection.setAdmin(owner);
+                collection.setAdmin(fallbackAdmin);
                 milkCollectionRepository.save(collection);
                 updated++;
             }
         }
 
-        for (Payment payment : paymentRepository.findAllWithFarmer()) {
+        for (Payment payment : paymentRepository.findByAdmin(fallbackAdmin)) {
             if (payment.getAdmin() == null) {
-                User owner = payment.getFarmer().getAdmin() != null
-                        ? payment.getFarmer().getAdmin()
-                        : fallbackAdmin;
-                payment.setAdmin(owner);
+                payment.setAdmin(fallbackAdmin);
                 paymentRepository.save(payment);
                 updated++;
             }
         }
 
-        for (FeedPurchase purchase : feedPurchaseRepository.findAllWithFarmer()) {
+        for (FeedPurchase purchase : feedPurchaseRepository.findByAdmin(fallbackAdmin)) {
             if (purchase.getAdmin() == null) {
-                User owner = purchase.getFarmer().getAdmin() != null
-                        ? purchase.getFarmer().getAdmin()
-                        : fallbackAdmin;
-                purchase.setAdmin(owner);
+                purchase.setAdmin(fallbackAdmin);
                 feedPurchaseRepository.save(purchase);
                 updated++;
             }

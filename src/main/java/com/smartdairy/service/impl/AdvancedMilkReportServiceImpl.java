@@ -10,9 +10,14 @@ import com.lowagie.text.pdf.PdfWriter;
 import com.smartdairy.dto.AdvancedMilkReportFarmerRow;
 import com.smartdairy.dto.AdvancedMilkReportResponse;
 import com.smartdairy.dto.DairyProfileResponse;
+import com.smartdairy.entity.Farmer;
+import com.smartdairy.entity.FarmerFinancialAccount;
+import com.smartdairy.entity.FarmerFinancialTransaction;
 import com.smartdairy.entity.MilkCollection;
 import com.smartdairy.entity.User;
 import com.smartdairy.exception.ResourceNotFoundException;
+import com.smartdairy.repository.FarmerFinancialAccountRepository;
+import com.smartdairy.repository.FarmerFinancialTransactionRepository;
 import com.smartdairy.repository.FarmerRepository;
 import com.smartdairy.repository.FeedPurchaseRepository;
 import com.smartdairy.repository.MilkCollectionRepository;
@@ -42,6 +47,8 @@ public class AdvancedMilkReportServiceImpl implements AdvancedMilkReportService 
     private final MilkCollectionRepository milkCollectionRepository;
     private final FeedPurchaseRepository feedPurchaseRepository;
     private final FarmerRepository farmerRepository;
+    private final FarmerFinancialAccountRepository financialAccountRepository;
+    private final FarmerFinancialTransactionRepository financialTransactionRepository;
     private final com.smartdairy.service.DairyProfileService dairyProfileService;
     private final UserService userService;
 
@@ -95,6 +102,32 @@ public class AdvancedMilkReportServiceImpl implements AdvancedMilkReportService 
         BigDecimal agg = sumRowTotals.setScale(2, RoundingMode.HALF_UP);
         boolean match = chk.compareTo(agg) == 0;
 
+        BigDecimal totalPendingAdvance = farmerRows.stream()
+                .map(AdvancedMilkReportFarmerRow::getPendingAdvance)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalPendingLoan = farmerRows.stream()
+                .map(AdvancedMilkReportFarmerRow::getPendingLoan)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalPendingOther = farmerRows.stream()
+                .map(AdvancedMilkReportFarmerRow::getPendingOther)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalPendingBalance = totalPendingAdvance.add(totalPendingLoan).add(totalPendingOther);
+        
+        BigDecimal totalAdvanceRecovered = farmerRows.stream()
+                .map(AdvancedMilkReportFarmerRow::getAdvanceRecovered)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalLoanRecovered = farmerRows.stream()
+                .map(AdvancedMilkReportFarmerRow::getLoanRecovered)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalOtherRecovered = farmerRows.stream()
+                .map(AdvancedMilkReportFarmerRow::getOtherRecovered)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalRecovered = totalAdvanceRecovered.add(totalLoanRecovered).add(totalOtherRecovered);
+        
+        BigDecimal grandTotalPayable = farmerRows.stream()
+                .map(AdvancedMilkReportFarmerRow::getFinalPayableAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         return AdvancedMilkReportResponse.builder()
                 .dateFrom(from)
                 .dateTo(to)
@@ -109,6 +142,15 @@ public class AdvancedMilkReportServiceImpl implements AdvancedMilkReportService 
                 .farmers(farmerRows)
                 .checksumTotalFromEntries(chk)
                 .totalsMatch(match)
+                .totalPendingAdvance(totalPendingAdvance)
+                .totalPendingLoan(totalPendingLoan)
+                .totalPendingOther(totalPendingOther)
+                .totalPendingBalance(totalPendingBalance)
+                .totalAdvanceRecovered(totalAdvanceRecovered)
+                .totalLoanRecovered(totalLoanRecovered)
+                .totalOtherRecovered(totalOtherRecovered)
+                .totalRecovered(totalRecovered)
+                .grandTotalPayable(grandTotalPayable)
                 .build();
     }
 
@@ -136,16 +178,58 @@ public class AdvancedMilkReportServiceImpl implements AdvancedMilkReportService 
         BigDecimal feed = feedPurchaseRepository
                 .sumTotalAmountBetweenForAdminAndFarmer(admin, from, to, farmerId)
                 .setScale(2, RoundingMode.HALF_UP);
+        
+        FarmerFinancialAccount financialAccount = financialAccountRepository.findByAdminAndFarmer(
+                admin, farmerRepository.findById(farmerId).orElseThrow()).orElse(null);
+        
+        BigDecimal pendingAdvance = financialAccount != null ? financialAccount.getPendingAdvance() : BigDecimal.ZERO;
+        BigDecimal pendingLoan = financialAccount != null ? financialAccount.getPendingLoan() : BigDecimal.ZERO;
+        BigDecimal pendingOther = financialAccount != null ? financialAccount.getPendingOther() : BigDecimal.ZERO;
+        BigDecimal totalPending = pendingAdvance.add(pendingLoan).add(pendingOther);
+        
+        Farmer farmer = farmerRepository.findById(farmerId).orElseThrow();
+        List<FarmerFinancialTransaction> transactions = financialTransactionRepository
+                .findByAdminAndFarmerAndDateRange(admin, farmer, from, to);
+        
+        BigDecimal advanceRecovered = transactions.stream()
+                .filter(t -> t.getTransactionType() == FarmerFinancialTransaction.FinancialTransactionType.ADVANCE_RECOVERED)
+                .map(FarmerFinancialTransaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        BigDecimal loanRecovered = transactions.stream()
+                .filter(t -> t.getTransactionType() == FarmerFinancialTransaction.FinancialTransactionType.LOAN_RECOVERED)
+                .map(FarmerFinancialTransaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        BigDecimal otherRecovered = transactions.stream()
+                .filter(t -> t.getTransactionType() == FarmerFinancialTransaction.FinancialTransactionType.OTHER_RECOVERED)
+                .map(FarmerFinancialTransaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        BigDecimal totalRecovered = advanceRecovered.add(loanRecovered).add(otherRecovered);
+        
+        BigDecimal netAfterFeed = a.amount.subtract(feed).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal finalPayable = netAfterFeed.subtract(totalRecovered).setScale(2, RoundingMode.HALF_UP);
+        
         return AdvancedMilkReportFarmerRow.builder()
                 .farmerId(farmerId)
                 .farmerName(a.name)
                 .totalMilkQuantity(a.qty.setScale(2, RoundingMode.HALF_UP))
                 .totalAmount(a.amount.setScale(2, RoundingMode.HALF_UP))
                 .feedDeductionAmount(feed)
-                .netAmountAfterFeed(a.amount.subtract(feed).setScale(2, RoundingMode.HALF_UP))
+                .netAmountAfterFeed(netAfterFeed)
                 .averageFat(divideOrZero(a.fatWeighted, a.qty))
                 .averageSnf(divideOrZero(a.snfWeighted, a.qty))
                 .averageRatePerLiter(divideOrZero(a.amount, a.qty))
+                .pendingAdvance(pendingAdvance)
+                .pendingLoan(pendingLoan)
+                .pendingOther(pendingOther)
+                .totalPending(totalPending)
+                .advanceRecovered(advanceRecovered)
+                .loanRecovered(loanRecovered)
+                .otherRecovered(otherRecovered)
+                .totalRecovered(totalRecovered)
+                .finalPayableAmount(finalPayable)
                 .build();
     }
 
@@ -192,7 +276,7 @@ public class AdvancedMilkReportServiceImpl implements AdvancedMilkReportService 
                     small));
             document.add(new Paragraph(" ", small));
 
-            PdfPTable table = new PdfPTable(9);
+            PdfPTable table = new PdfPTable(15);
             table.setWidthPercentage(100);
             addH(table, "Farmer", small);
             addH(table, "Date range", small);
@@ -203,6 +287,12 @@ public class AdvancedMilkReportServiceImpl implements AdvancedMilkReportService 
             addH(table, "Avg fat", small);
             addH(table, "Avg SNF", small);
             addH(table, "Avg ₹/L", small);
+            addH(table, "Pend Adv", small);
+            addH(table, "Pend Loan", small);
+            addH(table, "Pend Other", small);
+            addH(table, "Total Pend", small);
+            addH(table, "Total Recov", small);
+            addH(table, "Final Payable", small);
 
             String dr = r.getDateFrom() + " to " + r.getDateTo();
             for (AdvancedMilkReportFarmerRow row : r.getFarmers()) {
@@ -215,10 +305,16 @@ public class AdvancedMilkReportServiceImpl implements AdvancedMilkReportService 
                 table.addCell(new PdfPCell(new Paragraph(row.getAverageFat().toString(), small)));
                 table.addCell(new PdfPCell(new Paragraph(row.getAverageSnf().toString(), small)));
                 table.addCell(new PdfPCell(new Paragraph(row.getAverageRatePerLiter().toString(), small)));
+                table.addCell(new PdfPCell(new Paragraph(row.getPendingAdvance().toString(), small)));
+                table.addCell(new PdfPCell(new Paragraph(row.getPendingLoan().toString(), small)));
+                table.addCell(new PdfPCell(new Paragraph(row.getPendingOther().toString(), small)));
+                table.addCell(new PdfPCell(new Paragraph(row.getTotalPending().toString(), small)));
+                table.addCell(new PdfPCell(new Paragraph(row.getTotalRecovered().toString(), small)));
+                table.addCell(new PdfPCell(new Paragraph(row.getFinalPayableAmount().toString(), small)));
             }
             if (r.getFarmers().isEmpty()) {
                 PdfPCell empty = new PdfPCell(new Paragraph("No records in this range.", small));
-                empty.setColspan(9);
+                empty.setColspan(15);
                 table.addCell(empty);
             }
             document.add(table);
@@ -269,7 +365,7 @@ public class AdvancedMilkReportServiceImpl implements AdvancedMilkReportService 
             rowIdx++;
 
             Row header = sheet.createRow(rowIdx++);
-            String[] cols = {"Farmer", "Date range", "Total L", "Total ₹", "Feed ₹", "Net ₹", "Avg fat", "Avg SNF", "Avg ₹/L"};
+            String[] cols = {"Farmer", "Date range", "Total L", "Total ₹", "Feed ₹", "Net ₹", "Avg fat", "Avg SNF", "Avg ₹/L", "Pend Adv", "Pend Loan", "Pend Other", "Total Pend", "Total Recov", "Final Payable"};
             for (int i = 0; i < cols.length; i++) {
                 header.createCell(i).setCellValue(cols[i]);
             }
@@ -285,8 +381,14 @@ public class AdvancedMilkReportServiceImpl implements AdvancedMilkReportService 
                 x.createCell(6).setCellValue(row.getAverageFat().doubleValue());
                 x.createCell(7).setCellValue(row.getAverageSnf().doubleValue());
                 x.createCell(8).setCellValue(row.getAverageRatePerLiter().doubleValue());
+                x.createCell(9).setCellValue(row.getPendingAdvance().doubleValue());
+                x.createCell(10).setCellValue(row.getPendingLoan().doubleValue());
+                x.createCell(11).setCellValue(row.getPendingOther().doubleValue());
+                x.createCell(12).setCellValue(row.getTotalPending().doubleValue());
+                x.createCell(13).setCellValue(row.getTotalRecovered().doubleValue());
+                x.createCell(14).setCellValue(row.getFinalPayableAmount().doubleValue());
             }
-            for (int i = 0; i < 9; i++) {
+            for (int i = 0; i < 15; i++) {
                 sheet.autoSizeColumn(i);
             }
             wb.write(baos);
