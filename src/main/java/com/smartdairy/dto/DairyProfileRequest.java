@@ -5,6 +5,7 @@ import lombok.Data;
 @Data
 public class DairyProfileRequest {
     private String dairyName;
+    private String dairyCode;
     private String ownerName;
     private String contactNumber;
     private String email;

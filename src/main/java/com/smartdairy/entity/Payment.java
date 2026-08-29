@@ -88,6 +88,9 @@ public class Payment {
     @Column(length = 500)
     private String remarks;
 
+    @Column
+    private String receiptUrl;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 

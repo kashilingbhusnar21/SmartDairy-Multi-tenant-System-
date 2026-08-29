@@ -11,7 +11,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface PaymentRepository extends JpaRepository<Payment, Long> {
+public interface  PaymentRepository extends JpaRepository<Payment, Long> {
 
     @Query("select p from Payment p join fetch p.farmer join fetch p.milkCollection where p.id = :id")
     Optional<Payment> findByIdWithDetails(@Param("id") Long id);
@@ -33,6 +33,16 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByAdminAndStatus(User admin, PaymentStatus status);
 
     List<Payment> findByAdminAndFarmer_IdOrderByCreatedAtDesc(User admin, Long farmerId);
+
+    @Query("""
+            select p from Payment p
+            join fetch p.farmer
+            join fetch p.milkCollection
+            where p.admin = :admin and p.farmer.id = :farmerId
+            order by p.createdAt desc
+            """)
+    List<Payment> findByAdminAndFarmerIdWithDetailsOrderByCreatedAtDesc(
+            @Param("admin") User admin, @Param("farmerId") Long farmerId);
 
     @Query("select coalesce(sum(p.amount), 0) from Payment p where p.admin = :admin and p.status = :status")
     BigDecimal sumAmountByAdminAndStatus(@Param("admin") User admin, @Param("status") PaymentStatus status);

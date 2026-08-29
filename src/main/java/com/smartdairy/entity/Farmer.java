@@ -17,6 +17,7 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.Builder.Default;
 
 @Entity
 @Table(
@@ -59,13 +60,13 @@ public class Farmer {
     private String ifscCode;
 
     @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
+    @Builder.Default
     private Boolean active = true;
 
-    public Boolean getActive() {
-        return active;
-    }
+    @Column(length = 255)
+    private String password;
 
-    public void setActive(Boolean active) {
-        this.active = active;
-    }
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @Builder.Default
+    private Boolean passwordChanged = false;
 }

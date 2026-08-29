@@ -16,6 +16,10 @@ function HomePage() {
   const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
+    console.log("Dashboard loaded successfully");
+  }, []);
+
+  useEffect(() => {
     api
       .get("/secure/farmer")
       .then((response) => setSecureMessage(response.data.message))

@@ -1,10 +1,16 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { isAuthenticated } from "../utils/auth";
+import { getToken } from "../utils/auth";
 
 function ProtectedOutlet() {
-  if (!isAuthenticated()) {
+  const token = getToken();
+  console.log("ProtectedOutlet - Token check:", token ? "EXISTS" : "NULL");
+
+  if (!token) {
+    console.log("ProtectedOutlet - No token, redirecting to /login");
     return <Navigate to="/login" replace />;
   }
+
+  console.log("ProtectedOutlet - Token exists, rendering Outlet");
   return <Outlet />;
 }
 

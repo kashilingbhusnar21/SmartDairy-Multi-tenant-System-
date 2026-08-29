@@ -14,6 +14,7 @@ const emptyForm = {
   aadhaarNumber: "",
   bankAccountNumber: "",
   ifscCode: "",
+  password: "",
 };
 
 function FarmerFormPage() {
@@ -197,6 +198,21 @@ function FarmerFormPage() {
             className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm uppercase"
           />
         </div>
+
+        {!isEdit && (
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-1">Password <span className="text-slate-500">(Optional - leave blank to set later)</span></label>
+            <input
+              name="password"
+              type="password"
+              value={form.password}
+              onChange={handleChange}
+              minLength={6}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              placeholder="Enter initial password for farmer login"
+            />
+          </div>
+        )}
 
         {error ? (
           <p className="md:col-span-2 text-sm text-red-600">{error}</p>

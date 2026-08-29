@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/milk-collections")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','FARMER')")
+@PreAuthorize("hasRole('ADMIN')")
 public class MilkCollectionController {
 
     private final MilkCollectionService milkCollectionService;

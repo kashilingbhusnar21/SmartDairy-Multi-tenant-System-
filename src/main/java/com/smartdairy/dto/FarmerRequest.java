@@ -34,4 +34,7 @@ public class FarmerRequest {
     @NotBlank
     @Pattern(regexp = "^[A-Z]{4}0[A-Z0-9]{6}$", message = "Invalid IFSC code format")
     private String ifscCode;
+
+    @Size(min = 6, max = 100)
+    private String password;
 }

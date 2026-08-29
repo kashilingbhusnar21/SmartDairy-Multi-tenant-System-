@@ -205,8 +205,17 @@ public class FeedPurchaseServiceImpl implements FeedPurchaseService {
     @Transactional(readOnly = true)
     public BigDecimal getOutstandingByFarmer(Long farmerId) {
         User admin = userService.getLoggedInUser();
-        return feedPurchaseRepository.sumOutstandingByAdminAndFarmer(admin, farmerId)
-                .setScale(2, RoundingMode.HALF_UP);
+        return getOutstandingForAdminAndFarmer(admin, farmerId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal getOutstandingForAdminAndFarmer(User admin, Long farmerId) {
+        BigDecimal outstanding = feedPurchaseRepository.sumOutstandingByAdminAndFarmer(admin, farmerId);
+        if (outstanding == null) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        return outstanding.setScale(2, RoundingMode.HALF_UP);
     }
 
     private List<FeedPurchase> listRowsForExport(LocalDate from, LocalDate to, Long farmerId) {

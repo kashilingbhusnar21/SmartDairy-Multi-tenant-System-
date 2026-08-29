@@ -5,7 +5,7 @@ import ErrorState from "../components/ui/ErrorState";
 import PageLoader from "../components/ui/PageLoader";
 import Pagination from "../components/ui/Pagination";
 import { usePagination } from "../hooks/usePagination";
-import { deactivateFarmer, activateFarmer, listFarmers } from "../services/farmers";
+import { deactivateFarmer, activateFarmer, listFarmers, resetFarmerPassword } from "../services/farmers";
 import { getErrorMessage } from "../utils/errorMessage";
 
 const PAGE_SIZE = 8;
@@ -15,6 +15,14 @@ function FarmerListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
+  const [resetPasswordModal, setResetPasswordModal] = useState({
+    open: false,
+    farmerId: null,
+    farmerName: "",
+    newPassword: "",
+    confirmPassword: "",
+    submitting: false,
+  });
 
   const load = useCallback(async (search) => {
     try {
@@ -60,6 +68,52 @@ function FarmerListPage() {
       toast.success('Farmer activated successfully');
     } catch (err) {
       toast.error(getErrorMessage(err, 'Error occurred'));
+    }
+  };
+
+  const openResetPasswordModal = (farmer) => {
+    setResetPasswordModal({
+      open: true,
+      farmerId: farmer.id,
+      farmerName: farmer.fullName,
+      newPassword: "",
+      confirmPassword: "",
+      submitting: false,
+    });
+  };
+
+  const closeResetPasswordModal = () => {
+    setResetPasswordModal({
+      open: false,
+      farmerId: null,
+      farmerName: "",
+      newPassword: "",
+      confirmPassword: "",
+      submitting: false,
+    });
+  };
+
+  const handleResetPasswordSubmit = async (e) => {
+    e.preventDefault();
+    const { farmerId, newPassword, confirmPassword } = resetPasswordModal;
+
+    if (newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    setResetPasswordModal((prev) => ({ ...prev, submitting: true }));
+    try {
+      await resetFarmerPassword(farmerId, newPassword);
+      toast.success("Password updated successfully");
+      closeResetPasswordModal();
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to reset password"));
+      setResetPasswordModal((prev) => ({ ...prev, submitting: false }));
     }
   };
 
@@ -161,6 +215,13 @@ function FarmerListPage() {
                       <Link to={`/farmers/${f.id}/edit`} className="text-emerald-700 hover:underline">
                         Edit
                       </Link>
+                      <button
+                        type="button"
+                        onClick={() => openResetPasswordModal(f)}
+                        className="text-amber-700 hover:underline"
+                      >
+                        Set/Reset Password
+                      </button>
                       {f.active ? (
                         <button
                           type="button"
@@ -193,6 +254,69 @@ function FarmerListPage() {
           />
         </>
       ) : null}
+
+      {resetPasswordModal.open && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
+            <h2 className="text-xl font-bold text-slate-800 mb-1">Set / Reset Password</h2>
+            <p className="text-sm text-slate-600 mb-4">
+              Set a new login password for <span className="font-semibold">{resetPasswordModal.farmerName}</span>.
+            </p>
+
+            <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">New Password</label>
+                <input
+                  type="password"
+                  value={resetPasswordModal.newPassword}
+                  onChange={(e) =>
+                    setResetPasswordModal((prev) => ({ ...prev, newPassword: e.target.value }))
+                  }
+                  minLength={6}
+                  required
+                  autoComplete="new-password"
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                  placeholder="Enter new password"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Confirm Password</label>
+                <input
+                  type="password"
+                  value={resetPasswordModal.confirmPassword}
+                  onChange={(e) =>
+                    setResetPasswordModal((prev) => ({ ...prev, confirmPassword: e.target.value }))
+                  }
+                  minLength={6}
+                  required
+                  autoComplete="new-password"
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                  placeholder="Confirm new password"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeResetPasswordModal}
+                  disabled={resetPasswordModal.submitting}
+                  className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={resetPasswordModal.submitting}
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  {resetPasswordModal.submitting ? "Saving…" : "Save Password"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

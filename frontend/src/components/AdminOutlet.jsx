@@ -1,13 +1,16 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { getRole, isAuthenticated } from "../utils/auth";
+import { getRole } from "../utils/auth";
 
 function AdminOutlet() {
-  if (!isAuthenticated()) {
-    return <Navigate to="/login" replace />;
+  const role = getRole();
+  console.log("AdminOutlet - Role check:", role);
+
+  if (role !== "ADMIN") {
+    console.log("AdminOutlet - Role is not ADMIN, redirecting to /farmer/dashboard");
+    return <Navigate to="/farmer/dashboard" replace />;
   }
-  if (getRole() !== "ADMIN") {
-    return <Navigate to="/home" replace />;
-  }
+
+  console.log("AdminOutlet - Role is ADMIN, rendering Outlet");
   return <Outlet />;
 }
 

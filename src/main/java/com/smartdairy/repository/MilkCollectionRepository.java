@@ -27,6 +27,15 @@ public interface MilkCollectionRepository extends JpaRepository<MilkCollection, 
     @Query("""
             select m from MilkCollection m
             join fetch m.farmer
+            where m.admin = :admin and m.farmer.id = :farmerId
+            order by m.date asc
+            """)
+    List<MilkCollection> findByAdminAndFarmerIdWithFarmer(
+            @Param("admin") User admin, @Param("farmerId") Long farmerId);
+
+    @Query("""
+            select m from MilkCollection m
+            join fetch m.farmer
             where m.admin = :admin and m.date = :date
             order by m.farmer.fullName, m.shift
             """)

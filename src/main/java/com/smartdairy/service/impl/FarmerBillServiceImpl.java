@@ -23,6 +23,8 @@ import com.smartdairy.repository.FarmerFinancialTransactionRepository;
 import com.smartdairy.repository.FarmerRepository;
 import com.smartdairy.repository.FeedPurchaseRepository;
 import com.smartdairy.repository.MilkCollectionRepository;
+import com.smartdairy.config.CloudinaryFolders;
+import com.smartdairy.service.CloudinaryService;
 import com.smartdairy.service.DairyProfileService;
 import com.smartdairy.service.FarmerFinancialAccountService;
 import com.smartdairy.service.FarmerBillService;
@@ -37,6 +39,7 @@ import java.time.LocalDate;
 import java.util.Base64;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -46,6 +49,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class FarmerBillServiceImpl implements FarmerBillService {
 
     private final FarmerRepository farmerRepository;
@@ -59,6 +63,7 @@ public class FarmerBillServiceImpl implements FarmerBillService {
     private final UserService userService;
     private final FinancialCalculationService financialCalculationService;
     private final FinancialRecoveryService financialRecoveryService;
+    private final CloudinaryService cloudinaryService;
 
     @Override
     @Transactional
@@ -236,11 +241,13 @@ public class FarmerBillServiceImpl implements FarmerBillService {
 
         financialRecoveryService.recoverBillDeductions(admin, farmer, financialAccount, bill);
 
-        return preview(farmerId, from, to);
+        FarmerBillResponse response = preview(farmerId, from, to);
+
+        return response;
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public byte[] export(
             Long farmerId,
             LocalDate from,
@@ -248,7 +255,60 @@ public class FarmerBillServiceImpl implements FarmerBillService {
             String format) {
         FarmerBillResponse bill = preview(farmerId, from, to);
         boolean xlsx = format != null && (format.equalsIgnoreCase("xlsx") || format.equalsIgnoreCase("excel"));
-        return xlsx ? excel(bill) : pdf(bill);
+        
+        if (xlsx) {
+            return excel(bill);
+        }
+        
+        // PDF generation
+        byte[] pdfBytes = pdf(bill);
+        
+        // Validate PDF
+        if (pdfBytes == null || pdfBytes.length < 100) {
+            throw new IllegalArgumentException("Invalid Farmer Bill PDF");
+        }
+        
+        log.info("PDF generated. Size: {} bytes", pdfBytes.length);
+        
+        // Upload to Cloudinary only if needed
+        User admin = userService.getLoggedInUser();
+        var existingBills = farmerBillRepository.findByAdminAndFarmerIdAndFromDateAndToDate(admin, farmerId, from, to);
+        if (!existingBills.isEmpty()) {
+            FarmerBill farmerBill = existingBills.get(0);
+            
+            // Idempotency check - skip if already uploaded
+            if (!shouldUpload(farmerBill)) {
+                log.info("PDF already uploaded. Skipping Cloudinary upload.");
+                return pdfBytes;
+            }
+            
+            // Upload to Cloudinary BEFORE DB save
+            String secureUrl = null;
+            try {
+                String prefix = "farmer-bill-" + farmerBill.getId();
+                String folder = CloudinaryFolders.FARMER_BILLS;
+
+                log.info("Uploading Farmer Bill to Cloudinary...");
+                secureUrl = cloudinaryService.uploadPdf(pdfBytes, prefix, folder);
+
+                log.info("Upload success: {}", secureUrl);
+
+            } catch (Exception e) {
+                log.error("Cloudinary upload failed, continuing without storing URL", e);
+            }
+            
+            // Save URL to DB only if upload successful
+            if (secureUrl != null) {
+                farmerBill.setPdfUrl(secureUrl);
+                farmerBillRepository.save(farmerBill);
+            }
+        }
+        
+        return pdfBytes;
+    }
+
+    private boolean shouldUpload(FarmerBill bill) {
+        return bill.getPdfUrl() == null || bill.getPdfUrl().isBlank();
     }
 
     private byte[] pdf(FarmerBillResponse b) {
@@ -379,4 +439,5 @@ public class FarmerBillServiceImpl implements FarmerBillService {
             // keep bill generation resilient even when logo payload is malformed
         }
     }
+
 }

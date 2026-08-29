@@ -4,6 +4,7 @@ import com.smartdairy.dto.FeedChartPointResponse;
 import com.smartdairy.dto.FeedPurchaseRequest;
 import com.smartdairy.dto.FeedPurchaseResponse;
 import com.smartdairy.dto.FeedSummaryResponse;
+import com.smartdairy.entity.User;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -22,4 +23,6 @@ public interface FeedPurchaseService {
     BigDecimal applyOutstandingDeductionForPayment(Long farmerId, BigDecimal availableAmount, Long paymentId);
 
     BigDecimal getOutstandingByFarmer(Long farmerId);
+
+    BigDecimal getOutstandingForAdminAndFarmer(User admin, Long farmerId);
 }

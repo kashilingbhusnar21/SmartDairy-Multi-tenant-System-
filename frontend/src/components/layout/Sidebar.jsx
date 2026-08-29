@@ -81,7 +81,7 @@ function Sidebar({ onNavigate }) {
             Admin Panel
           </p>
           <p className="text-xs text-slate-400 truncate" title={email || ""}>
-            {email || "Signed in"}
+            {email || "Admin"}
           </p>
         </div>
 

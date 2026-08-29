@@ -18,6 +18,15 @@ public interface FarmerRepository extends JpaRepository<Farmer, Long> {
 
     @Query("""
             select f from Farmer f
+            join fetch f.admin
+            where f.id = :id
+              and f.admin.id = :adminId
+            """)
+    Optional<Farmer> findByIdAndAdminIdWithAdmin(
+            @Param("id") Long id, @Param("adminId") Long adminId);
+
+    @Query("""
+            select f from Farmer f
             where f.id = :id
               and f.admin = :admin
             """)
@@ -51,4 +60,6 @@ public interface FarmerRepository extends JpaRepository<Farmer, Long> {
             order by f.fullName
             """)
     List<Farmer> searchByAdminAndActive(@Param("admin") User admin, @Param("active") boolean active, @Param("query") String query);
+
+    Optional<Farmer> findByMobileNumber(String mobileNumber);
 }

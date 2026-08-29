@@ -6,4 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface DairyProfileRepository extends JpaRepository<DairyProfile, Long> {
     Optional<DairyProfile> findByUser_Id(Long userId);
+    Optional<DairyProfile> findByDairyCode(String dairyCode);
+    boolean existsByDairyCode(String dairyCode);
 }

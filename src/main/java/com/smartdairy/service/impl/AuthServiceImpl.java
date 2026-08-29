@@ -77,12 +77,26 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse login(LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+        System.out.println("=== ADMIN LOGIN DEBUG ===");
+        System.out.println("Incoming email: " + request.getEmail());
+        System.out.println("Incoming password: " + request.getPassword());
+
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+            );
+            System.out.println("Authentication successful");
+        } catch (Exception e) {
+            System.out.println("Authentication failed: " + e.getMessage());
+            throw e;
+        }
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
+
+        System.out.println("User found: " + user.getEmail());
+        System.out.println("User role: " + user.getRole().getName());
+        System.out.println("User password (hashed): " + user.getPassword());
 
         String token = jwtService.generateToken(user);
         return AuthResponse.builder()

@@ -18,6 +18,8 @@ import com.smartdairy.repository.FarmerRepository;
 import com.smartdairy.repository.FeedPurchaseRepository;
 import com.smartdairy.repository.MilkCollectionRepository;
 import com.smartdairy.repository.PaymentRepository;
+import com.smartdairy.config.CloudinaryFolders;
+import com.smartdairy.service.CloudinaryService;
 import com.smartdairy.service.FeedPurchaseService;
 import com.smartdairy.service.FarmerFinancialAccountService;
 import com.smartdairy.service.FarmerFinancialSettlementService;
@@ -55,6 +57,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentSettlementService paymentSettlementService;
     private final SmsService smsService;
     private final UserService userService;
+    private final CloudinaryService cloudinaryService;
 
     @Override
     @Transactional
@@ -229,7 +232,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public byte[] generateReceiptPdf(Long paymentId) {
         User admin = userService.getLoggedInUser();
         Payment payment = paymentRepository.findByAdminAndIdWithDetails(admin, paymentId)
@@ -237,7 +240,17 @@ public class PaymentServiceImpl implements PaymentService {
         if (payment.getStatus() != PaymentStatus.PAID) {
             throw new IllegalArgumentException("Receipt is available only for paid payments");
         }
-        return paymentReceiptPdfService.buildReceipt(payment);
+        
+        byte[] pdfBytes = paymentReceiptPdfService.buildReceipt(payment);
+        
+        if (payment.getReceiptUrl() == null || payment.getReceiptUrl().isBlank()) {
+            String prefix = "payment-receipt-" + payment.getId();
+            String secureUrl = cloudinaryService.uploadPdf(pdfBytes, prefix, CloudinaryFolders.PAYMENT_RECEIPTS);
+            payment.setReceiptUrl(secureUrl);
+            paymentRepository.save(payment);
+        }
+        
+        return pdfBytes;
     }
 
     private Payment findPaymentForAdmin(Long id, User admin) {

@@ -27,4 +27,6 @@ public interface FarmerService {
     List<FarmerResponse> getInactiveFarmers();
 
     List<FarmerResponse> searchInactiveFarmers(String query);
+
+    void resetFarmerPassword(Long id, String newPassword);
 }

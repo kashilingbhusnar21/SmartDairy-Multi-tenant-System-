@@ -21,6 +21,7 @@ public class FarmerServiceImpl implements FarmerService {
     private final FarmerRepository farmerRepository;
     private final SmsService smsService;
     private final UserService userService;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
@@ -157,6 +158,17 @@ public class FarmerServiceImpl implements FarmerService {
                 .toList();
     }
 
+    @Override
+    @Transactional
+    public void resetFarmerPassword(Long id, String newPassword) {
+        User admin = userService.getLoggedInUser();
+        Farmer farmer = farmerRepository.findByIdAndAdmin(id, admin)
+                .orElseThrow(() -> new ResourceNotFoundException("Farmer not found with id: " + id));
+        farmer.setPassword(passwordEncoder.encode(newPassword));
+        farmer.setPasswordChanged(false);
+        farmerRepository.save(farmer);
+    }
+
     private Farmer mapToEntity(Farmer farmer, FarmerRequest request) {
         farmer.setFullName(request.getFullName());
         farmer.setMobileNumber(request.getMobileNumber());
@@ -165,6 +177,12 @@ public class FarmerServiceImpl implements FarmerService {
         farmer.setAadhaarNumber(request.getAadhaarNumber());
         farmer.setBankAccountNumber(request.getBankAccountNumber());
         farmer.setIfscCode(request.getIfscCode());
+        
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            farmer.setPassword(passwordEncoder.encode(request.getPassword()));
+            farmer.setPasswordChanged(true);
+        }
+        
         return farmer;
     }
 

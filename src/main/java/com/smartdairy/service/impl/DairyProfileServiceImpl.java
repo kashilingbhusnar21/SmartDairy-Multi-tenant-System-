@@ -36,7 +36,17 @@ public class DairyProfileServiceImpl implements DairyProfileService {
         DairyProfile p = dairyProfileRepository.findByUser_Id(user.getId()).orElseGet(() -> DairyProfile.builder()
                 .user(user)
                 .build());
+        
+        String newDairyCode = trim(request.getDairyCode());
+        if (newDairyCode != null && !newDairyCode.isBlank()) {
+            DairyProfile existingByCode = dairyProfileRepository.findByDairyCode(newDairyCode).orElse(null);
+            if (existingByCode != null && !existingByCode.getId().equals(p.getId())) {
+                throw new IllegalArgumentException("Dairy code already exists: " + newDairyCode);
+            }
+        }
+        
         p.setDairyName(trim(request.getDairyName()));
+        p.setDairyCode(newDairyCode);
         p.setOwnerName(trim(request.getOwnerName()));
         p.setContactNumber(trim(request.getContactNumber()));
         p.setEmail(trim(request.getEmail()));
@@ -54,6 +64,7 @@ public class DairyProfileServiceImpl implements DairyProfileService {
 
     private static DairyProfileResponse toResponse(DairyProfile p, String accountEmail) {
         String dairyName = p != null && notBlank(p.getDairyName()) ? p.getDairyName() : "My Dairy";
+        String dairyCode = p != null ? p.getDairyCode() : null;
         String owner = p != null && notBlank(p.getOwnerName()) ? p.getOwnerName() : "Owner Name";
         String contact = p != null && notBlank(p.getContactNumber()) ? p.getContactNumber() : "NA";
         String email = p != null && notBlank(p.getEmail()) ? p.getEmail() : accountEmail;
@@ -63,6 +74,7 @@ public class DairyProfileServiceImpl implements DairyProfileService {
         return DairyProfileResponse.builder()
                 .id(p != null ? p.getId() : null)
                 .dairyName(dairyName)
+                .dairyCode(dairyCode)
                 .ownerName(owner)
                 .contactNumber(contact)
                 .email(email)

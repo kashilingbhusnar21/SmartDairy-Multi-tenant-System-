@@ -13,7 +13,25 @@ public interface FeedPurchaseRepository extends JpaRepository<FeedPurchase, Long
 
     List<FeedPurchase> findByAdmin(User admin);
 
-    List<FeedPurchase> findByAdminAndFarmer_IdOrderByFeedDateDescCreatedAtDesc(User admin, Long farmerId);
+    @Query("""
+            select f from FeedPurchase f
+            join fetch f.farmer
+            where f.admin = :admin and f.farmer.id = :farmerId
+            order by f.feedDate desc, f.createdAt desc
+            """)
+    List<FeedPurchase> findByAdminAndFarmer_IdOrderByFeedDateDescCreatedAtDesc(
+            @Param("admin") User admin, @Param("farmerId") Long farmerId);
+
+    @Query("""
+            select f from FeedPurchase f
+            join fetch f.farmer
+            where f.admin = :admin and f.farmer.id = :farmerId
+              and f.feedDate between :from and :to
+            order by f.feedDate desc, f.createdAt desc
+            """)
+    List<FeedPurchase> findByAdminAndFarmer_IdAndFeedDateBetweenOrderByFeedDateDescCreatedAtDesc(
+            @Param("admin") User admin, @Param("farmerId") Long farmerId,
+            @Param("from") LocalDate from, @Param("to") LocalDate to);
 
     List<FeedPurchase> findByAdminAndFeedDateBetweenOrderByFeedDateDescCreatedAtDesc(
             User admin, LocalDate from, LocalDate to);

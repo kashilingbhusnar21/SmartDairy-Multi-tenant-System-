@@ -1,7 +1,7 @@
 import api from "./http/client";
 
-export function login(credentials) {
-  return api.post("/auth/login", credentials);
+export function loginAdmin(data) {
+  return api.post("/auth/login", data);
 }
 
 export function register(payload) {
@@ -19,3 +19,10 @@ export function verifyResetToken(token) {
 export function resetPassword(token, newPassword) {
   return api.post("/auth/reset-password", { token, newPassword });
 }
+
+export function loginFarmer(data) {
+  return api.post("/farmer/auth/login", data);
+}
+
+export const login = loginAdmin;
+export const farmerLogin = loginFarmer;

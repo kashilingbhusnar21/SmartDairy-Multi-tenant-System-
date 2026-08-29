@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 public class DairyProfileResponse {
     private Long id;
     private String dairyName;
+    private String dairyCode;
     private String ownerName;
     private String contactNumber;
     private String email;

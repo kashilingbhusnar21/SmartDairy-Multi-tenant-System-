@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/feed-purchases")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','FARMER')")
+@PreAuthorize("hasRole('ADMIN')")
 public class FeedPurchaseController {
 
     private final FeedPurchaseService feedPurchaseService;

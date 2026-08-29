@@ -75,6 +75,9 @@ public class FarmerBill {
 
     private java.time.Instant finalizedAt;
 
+    @Column
+    private String pdfUrl;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
-const TOKEN_KEY = "smart_dairy_token";
+const TOKEN_KEY = "token";
 
 // Create axios instance with default configuration
 const apiClient = axios.create({
@@ -16,7 +16,8 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem(TOKEN_KEY);
-    if (token) {
+    // Don't add Authorization header for login endpoints
+    if (token && !config.url.includes('/auth/login') && !config.url.includes('/farmer/auth/login')) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;

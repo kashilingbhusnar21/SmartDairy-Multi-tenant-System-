@@ -13,6 +13,7 @@ function AdminSettingsPage() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [profile, setProfile] = useState({
     dairyName: "",
+    dairyCode: "",
     ownerName: "",
     contactNumber: "",
     email: "",
@@ -40,6 +41,7 @@ function AdminSettingsPage() {
         });
         setProfile({
           dairyName: p.dairyName || "",
+          dairyCode: p.dairyCode || "",
           ownerName: p.ownerName || "",
           contactNumber: p.contactNumber || "",
           email: p.email || "",
@@ -151,6 +153,10 @@ function AdminSettingsPage() {
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Dairy name</label>
             <input name="dairyName" value={profile.dairyName} onChange={handleProfileChange} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Dairy code <span className="text-emerald-600 font-semibold">(Required for farmer login)</span></label>
+            <input name="dairyCode" value={profile.dairyCode} onChange={handleProfileChange} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono" placeholder="e.g., DAIRY001" />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Owner name</label>

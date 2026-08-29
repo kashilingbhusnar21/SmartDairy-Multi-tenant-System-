@@ -37,6 +37,7 @@ public class SecurityConfig {
                                 "/api/auth/forgot-password",
                                 "/api/auth/verify-reset-token",
                                 "/api/auth/reset-password",
+                                "/api/farmer/auth/login",
                                 "/api/home/public",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",

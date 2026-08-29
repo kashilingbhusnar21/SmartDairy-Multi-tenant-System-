@@ -34,6 +34,9 @@ public class DairyProfile {
     @Column(length = 150)
     private String dairyName;
 
+    @Column(unique = true, length = 20)
+    private String dairyCode;
+
     @Column(length = 120)
     private String ownerName;
 

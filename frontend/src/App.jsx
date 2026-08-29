@@ -20,10 +20,17 @@ import FinancialLedgerPage from './pages/FinancialLedgerPage';
 import FinancialAnalyticsPage from './pages/FinancialAnalyticsPage';
 import AdminPage from './pages/AdminPage';
 import AdminSettingsPage from './pages/AdminSettingsPage';
+import FarmerDashboardPage from './pages/FarmerDashboardPage';
+import FarmerProfilePage from './pages/FarmerProfilePage';
+import FarmerMilkCollectionsPage from './pages/FarmerMilkCollectionsPage';
+import FarmerPaymentsPage from './pages/FarmerPaymentsPage';
+import FarmerFeedPurchasesPage from './pages/FarmerFeedPurchasesPage';
 import ProtectedOutlet from './components/ProtectedOutlet';
 import AdminOutlet from './components/AdminOutlet';
+import FarmerOutlet from './components/FarmerOutlet';
 //import Layout from './components/Layout';
 import DashboardLayout from './components/layout/DashboardLayout';
+import FarmerLayout from './components/layout/FarmerLayout';
 function App() {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -35,30 +42,41 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-        {/* Protected routes */}
+        {/* Protected routes - Admin */}
         <Route element={<ProtectedOutlet />}>
-          <Route element={<DashboardLayout />}>
-            <Route path="/home" element={<HomePage />} />
-            <Route path="/dashboard" element={<HomePage />} />
-            <Route path="/farmers" element={<FarmerListPage />} />
-            <Route path="/farmers/add" element={<FarmerFormPage />} />
-            <Route path="/farmers/:id/edit" element={<FarmerFormPage />} />
-            <Route path="/milk-collections" element={<MilkCollectionListPage />} />
-            <Route path="/milk-collections/add" element={<MilkCollectionFormPage />} />
-            <Route path="/milk-collections/:id/edit" element={<MilkCollectionFormPage />} />
-            <Route path="/milk-reports" element={<AdvancedMilkReportsPage />} />
-            <Route path="/payments" element={<PaymentDashboardPage />} />
-            <Route path="/payments/add" element={<PaymentFormPage />} />
-            <Route path="/feed-purchases" element={<FeedPurchasesPage />} />
-            <Route path="/financial-ledger" element={<FinancialLedgerPage />} />
-            <Route path="/financial-analytics" element={<FinancialAnalyticsPage />} />
-            <Route path="/farmers/:farmerId/bill" element={<FarmerBillPage />} />
-            <Route path="/farmers/:farmerId/payments" element={<FarmerPaymentHistoryPage />} />
-
-            {/* Admin routes */}
-            <Route element={<AdminOutlet />}>
+          <Route element={<AdminOutlet />}>
+            <Route element={<DashboardLayout />}>
+              <Route path="/home" element={<HomePage />} />
+              <Route path="/dashboard" element={<HomePage />} />
+              <Route path="/farmers" element={<FarmerListPage />} />
+              <Route path="/farmers/add" element={<FarmerFormPage />} />
+              <Route path="/farmers/:id/edit" element={<FarmerFormPage />} />
+              <Route path="/milk-collections" element={<MilkCollectionListPage />} />
+              <Route path="/milk-collections/add" element={<MilkCollectionFormPage />} />
+              <Route path="/milk-collections/:id/edit" element={<MilkCollectionFormPage />} />
+              <Route path="/milk-reports" element={<AdvancedMilkReportsPage />} />
+              <Route path="/payments" element={<PaymentDashboardPage />} />
+              <Route path="/payments/add" element={<PaymentFormPage />} />
+              <Route path="/feed-purchases" element={<FeedPurchasesPage />} />
+              <Route path="/financial-ledger" element={<FinancialLedgerPage />} />
+              <Route path="/financial-analytics" element={<FinancialAnalyticsPage />} />
+              <Route path="/farmers/:farmerId/bill" element={<FarmerBillPage />} />
+              <Route path="/farmers/:farmerId/payments" element={<FarmerPaymentHistoryPage />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/admin/settings" element={<AdminSettingsPage />} />
+            </Route>
+          </Route>
+        </Route>
+
+        {/* Protected routes - Farmer */}
+        <Route element={<ProtectedOutlet />}>
+          <Route element={<FarmerOutlet />}>
+            <Route element={<FarmerLayout />}>
+              <Route path="/farmer/dashboard" element={<FarmerDashboardPage />} />
+              <Route path="/farmer/profile" element={<FarmerProfilePage />} />
+              <Route path="/farmer/milk-collections" element={<FarmerMilkCollectionsPage />} />
+              <Route path="/farmer/payments" element={<FarmerPaymentsPage />} />
+              <Route path="/farmer/feed-purchases" element={<FarmerFeedPurchasesPage />} />
             </Route>
           </Route>
         </Route>

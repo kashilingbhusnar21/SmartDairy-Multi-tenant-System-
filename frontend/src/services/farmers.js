@@ -37,3 +37,7 @@ export function deactivateFarmer(id) {
 export function activateFarmer(id) {
   return api.patch(`/farmers/${id}/activate`).then((res) => res.data);
 }
+
+export function resetFarmerPassword(id, password) {
+  return api.post(`/farmers/${id}/reset-password`, { password }).then((res) => res.data);
+}
