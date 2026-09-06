@@ -176,17 +176,18 @@ function FeedPurchasesPage() {
           <label className="block text-xs text-slate-600 mb-1">Company</label>
           <input name="feedCompanyName" value={form.feedCompanyName} onChange={onChange} required placeholder="Company" className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
         </div>
-        <div>
-          <label className="block text-xs text-slate-600 mb-1">Quantity</label>
-          <input name="feedQuantity" value={form.feedQuantity} onChange={onChange} required placeholder="Quantity" className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
-        </div>
-        <div>
-          <label className="block text-xs text-slate-600 mb-1">Unit</label>
-          <input name="unitType" value={form.unitType} onChange={onChange} required placeholder="Unit" className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
-        </div>
-        <div>
-          <label className="block text-xs text-slate-600 mb-1">Rate</label>
-          <input name="ratePerUnit" value={form.ratePerUnit} onChange={onChange} required placeholder="Rate" className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+        <div className="flex gap-2 items-end">
+          <div className="flex-1">
+            <label className="block text-xs text-slate-600 mb-1">Quantity</label>
+            <input name="feedQuantity" value={form.feedQuantity} onChange={onChange} required placeholder="Quantity" className="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full" />
+          </div>
+          <div className="flex items-center pb-2">
+            <span className="text-sm font-medium text-slate-600">KG</span>
+          </div>
+          <div className="flex-1">
+            <label className="block text-xs text-slate-600 mb-1">Rate</label>
+            <input name="ratePerUnit" value={form.ratePerUnit} onChange={onChange} required placeholder="Rate" className="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full" />
+          </div>
         </div>
         <div>
           <label className="block text-xs text-slate-600 mb-1">Total</label>
@@ -246,38 +247,38 @@ function FeedPurchasesPage() {
               </ResponsiveContainer>
             </div>
           </section>
-          <div className="overflow-x-auto bg-white border border-slate-200 rounded-xl">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50">
+          <div className="overflow-x-auto bg-white border border-slate-200 rounded-xl shadow-sm">
+            <table className="min-w-full text-sm border-collapse">
+              <thead className="bg-slate-100 border-b-2 border-slate-300">
                 <tr>
-                  <th className="px-3 py-2 text-left">Date</th>
-                  <th className="px-3 py-2 text-left">Farmer ID</th>
-                  <th className="px-3 py-2 text-left">Farmer Name</th>
-                  <th className="px-3 py-2 text-left">Type</th>
-                  <th className="px-3 py-2 text-left">Company</th>
-                  <th className="px-3 py-2 text-right">Qty</th>
-                  <th className="px-3 py-2 text-right">Rate</th>
-                  <th className="px-3 py-2 text-right">Total</th>
-                  <th className="px-3 py-2 text-right">Remaining</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Date</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Farmer ID</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Farmer Name</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Type</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Company</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-700">Qty</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-700">Rate</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-700">Total</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-700">Remaining</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-200">
                 {pageItems.map((r) => (
-                  <tr key={r.id} className="border-t border-slate-100">
-                    <td className="px-3 py-2">{r.feedDate}</td>
-                    <td className="px-3 py-2">{r.farmerId}</td>
-    <td className="px-3 py-2">{r.farmerName}</td>
-                    <td className="px-3 py-2">{r.feedType}</td>
-                    <td className="px-3 py-2">{r.feedCompanyName}</td>
-                    <td className="px-3 py-2 text-right">{r.feedQuantity} {r.unitType}</td>
-                    <td className="px-3 py-2 text-right">{r.ratePerUnit}</td>
-                    <td className="px-3 py-2 text-right">₹ {r.totalAmount}</td>
-                    <td className="px-3 py-2 text-right">₹ {r.remainingAmount}</td>
+                  <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-4 py-3">{r.feedDate}</td>
+                    <td className="px-4 py-3">{r.farmerId}</td>
+                    <td className="px-4 py-3">{r.farmerName}</td>
+                    <td className="px-4 py-3">{r.feedType}</td>
+                    <td className="px-4 py-3">{r.feedCompanyName}</td>
+                    <td className="px-4 py-3 text-right">{r.feedQuantity} {r.unitType}</td>
+                    <td className="px-4 py-3 text-right">{r.ratePerUnit}</td>
+                    <td className="px-4 py-3 text-right">₹ {r.totalAmount}</td>
+                    <td className="px-4 py-3 text-right">₹ {r.remainingAmount}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {rows.length === 0 ? <p className="p-4 text-sm text-slate-500">No feed purchases found.</p> : null}
+            {rows.length === 0 ? <p className="p-4 text-sm text-slate-500 text-center">No feed purchases found.</p> : null}
           </div>
           <Pagination page={page} totalPages={totalPages} total={total} pageSize={pageSize} onPageChange={setPage} />
         </>

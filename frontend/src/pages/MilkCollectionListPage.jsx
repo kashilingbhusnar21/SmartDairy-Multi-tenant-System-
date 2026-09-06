@@ -130,32 +130,35 @@ function MilkCollectionListPage() {
       ) : !error ? (
         <>
           <div className="overflow-x-auto bg-white border border-slate-200 rounded-xl shadow-sm">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50">
+            <table className="min-w-full text-sm border-collapse">
+              <thead className="bg-slate-100 border-b-2 border-slate-300">
                 <tr>
-                  <th className="px-3 py-2 text-left font-semibold text-slate-700">ID</th>
-                  <th className="px-3 py-2 text-left font-semibold text-slate-700">Farmer Name</th>
-                  <th className="px-3 py-2 text-left font-semibold text-slate-700">Shift</th>
-                  <th className="px-3 py-2 text-left font-semibold text-slate-700">Total Quantity (L)</th>
-                  <th className="px-3 py-2 text-left font-semibold text-slate-700">Fat %</th>
-                  <th className="px-3 py-2 text-left font-semibold text-slate-700">SNF %</th>
-                  <th className="px-3 py-2 text-left font-semibold text-slate-700">Rate/Liter</th>
-                  <th className="px-3 py-2 text-left font-semibold text-slate-700">Total Amount</th>
-                  <th className="px-3 py-2 text-left font-semibold text-slate-700">Actions</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700 border-b border-slate-300">ID</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700 border-b border-slate-300">Farmer Name</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700 border-b border-slate-300">Shift</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-700 border-b border-slate-300">Total Quantity (L)</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-700 border-b border-slate-300">Fat %</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-700 border-b border-slate-300">SNF %</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-700 border-b border-slate-300">Rate/Liter</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-700 border-b border-slate-300">Total Amount</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700 border-b border-slate-300">Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                {pageItems.map((r) => (
-                  <tr key={r.id} className="border-t border-slate-100">
-                    <td className="px-3 py-2">{r.id}</td>
-                    <td className="px-3 py-2">{r.farmerName}</td>
-                    <td className="px-3 py-2">{r.shift}</td>
-                    <td className="px-3 py-2">{r.quantityLiters}</td>
-                    <td className="px-3 py-2">{r.fatPercentage}</td>
-                    <td className="px-3 py-2">{r.snfPercentage}</td>
-                    <td className="px-3 py-2">{r.ratePerLiter}</td>
-                    <td className="px-3 py-2">{r.totalAmount}</td>
-                    <td className="px-3 py-2 space-x-2 whitespace-nowrap">
+              <tbody className="divide-y divide-slate-200">
+                {pageItems.map((r, index) => (
+                  <tr
+                    key={r.id}
+                    className={`${index % 2 === 0 ? "bg-white" : "bg-slate-50"} hover:bg-slate-100 transition-colors`}
+                  >
+                    <td className="px-4 py-3 border-b border-slate-200">{r.id}</td>
+                    <td className="px-4 py-3 border-b border-slate-200">{r.farmerName}</td>
+                    <td className="px-4 py-3 border-b border-slate-200">{r.shift}</td>
+                    <td className="px-4 py-3 text-right border-b border-slate-200">{r.quantityLiters}</td>
+                    <td className="px-4 py-3 text-right border-b border-slate-200">{r.fatPercentage}</td>
+                    <td className="px-4 py-3 text-right border-b border-slate-200">{r.snfPercentage}</td>
+                    <td className="px-4 py-3 text-right border-b border-slate-200">{r.ratePerLiter}</td>
+                    <td className="px-4 py-3 text-right border-b border-slate-200">{r.totalAmount}</td>
+                    <td className="px-4 py-3 border-b border-slate-200 space-x-2 whitespace-nowrap">
                       <Link
                         to={`/milk-collections/${r.id}/edit`}
                         className="text-emerald-700 hover:underline"

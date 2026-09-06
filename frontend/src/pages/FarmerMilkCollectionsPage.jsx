@@ -87,24 +87,27 @@ function FarmerMilkCollectionsPage() {
             <p className="text-slate-500 text-center py-4">No milk collections found</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full border border-slate-300 border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-200">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600">Date</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600">Quantity (L)</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600">Rate (₹/L)</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600">Amount (₹)</th>
+                  <tr className="bg-slate-100 border-b-2 border-slate-300">
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700 border border-slate-300">Date</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700 border border-slate-300">Quantity (L)</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700 border border-slate-300">Rate (₹)</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700 border border-slate-300">Amount (₹)</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {formattedCollections.map((collection) => (
-                    <tr key={collection.id} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="py-3 px-4 text-sm text-slate-800">
+                  {formattedCollections.map((collection, index) => (
+                      <tr
+                          key={collection.id}
+                          className={`${index % 2 === 0 ? "bg-white" : "bg-slate-50"} hover:bg-slate-100 transition-colors`}
+                      >
+                      <td className="py-3 px-4 text-sm text-slate-800 border border-slate-200">
                         {collection.displayDate}
                       </td>
-                      <td className="py-3 px-4 text-sm text-slate-800">{collection.quantity.toFixed(2)}</td>
-                      <td className="py-3 px-4 text-sm text-slate-800">₹{collection.rate.toFixed(2)}</td>
-                      <td className="py-3 px-4 text-sm font-semibold text-emerald-600">
+                      <td className="py-3 px-4 text-sm text-slate-800 text-right border border-slate-200">{collection.quantity.toFixed(2)}</td>
+                      <td className="py-3 px-4 text-sm text-slate-800 text-right border border-slate-200">₹{collection.rate.toFixed(2)}</td>
+                      <td className="py-3 px-4 text-sm font-semibold text-emerald-600 text-right border border-slate-200">
                         ₹{collection.amount.toFixed(2)}
                       </td>
                     </tr>
@@ -120,3 +123,6 @@ function FarmerMilkCollectionsPage() {
 }
 
 export default FarmerMilkCollectionsPage;
+
+
+

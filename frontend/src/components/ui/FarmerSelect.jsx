@@ -11,7 +11,7 @@ function FarmerSelect({
   label = "Farmer",
   className = "",
   inputClassName,
-  searchClassName = "w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
+  searchClassName = "w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all",
   detailsClassName = "mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900",
   errorClassName = "text-xs text-red-600 mt-1",
   placeholder = "Enter Farmer ID",

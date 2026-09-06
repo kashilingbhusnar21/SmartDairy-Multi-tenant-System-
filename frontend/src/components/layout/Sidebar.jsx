@@ -17,6 +17,7 @@ import {
   LogOut,
   Menu,
   X,
+  Bot,
 } from "lucide-react";
 
 const navClass = ({ isActive }) =>
@@ -137,6 +138,10 @@ function Sidebar({ onNavigate }) {
               <NavLink to="/milk-reports" className={navClass} onClick={handleNav}>
                 <FileText size={18} />
                 <span>Advanced Reports</span>
+              </NavLink>
+              <NavLink to="/admin/ai-chat" className={navClass} onClick={handleNav}>
+                <Bot size={18} />
+                <span>AI Assistant</span>
               </NavLink>
             </>
           ) : null}

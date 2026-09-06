@@ -168,27 +168,30 @@ function FarmerListPage() {
       ) : !error ? (
         <>
           <div className="overflow-x-auto bg-white border border-slate-200 rounded-xl shadow-sm">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50">
+            <table className="min-w-full text-sm border-collapse">
+              <thead className="bg-slate-100 border-b-2 border-slate-300">
                 <tr>
-                  <th className="px-3 py-2 text-left font-semibold text-slate-700">ID</th>
-                  <th className="px-3 py-2 text-left font-semibold text-slate-700">Farmer Name</th>
-                  <th className="px-3 py-2 text-left font-semibold text-slate-700">Phone</th>
-                  <th className="px-3 py-2 text-left font-semibold text-slate-700">Address</th>
-                  <th className="px-3 py-2 text-left font-semibold text-slate-700">Aadhaar</th>
-                  <th className="px-3 py-2 text-left font-semibold text-slate-700">Status</th>
-                  <th className="px-3 py-2 text-left font-semibold text-slate-700">Actions</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700 border-b border-slate-300">ID</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700 border-b border-slate-300">Farmer Name</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700 border-b border-slate-300">Phone</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700 border-b border-slate-300">Address</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700 border-b border-slate-300">Aadhaar</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700 border-b border-slate-300">Status</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700 border-b border-slate-300">Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                {pageItems.map((f) => (
-                  <tr key={f.id} className="border-t border-slate-100">
-                    <td className="px-3 py-2">{f.id}</td>
-                    <td className="px-3 py-2">{f.fullName}</td>
-                    <td className="px-3 py-2">{f.mobileNumber}</td>
-                    <td className="px-3 py-2">{f.village}</td>
-                    <td className="px-3 py-2">{f.aadhaarNumber}</td>
-                    <td className="px-3 py-2">
+              <tbody className="divide-y divide-slate-200">
+                {pageItems.map((f, index) => (
+                  <tr
+                    key={f.id}
+                    className={`${index % 2 === 0 ? "bg-white" : "bg-slate-50"} hover:bg-slate-100 transition-colors`}
+                  >
+                    <td className="px-4 py-3 border-b border-slate-200">{f.id}</td>
+                    <td className="px-4 py-3 border-b border-slate-200">{f.fullName}</td>
+                    <td className="px-4 py-3 border-b border-slate-200">{f.mobileNumber}</td>
+                    <td className="px-4 py-3 border-b border-slate-200">{f.village}</td>
+                    <td className="px-4 py-3 border-b border-slate-200">{f.aadhaarNumber}</td>
+                    <td className="px-4 py-3 border-b border-slate-200">
                       {f.active ? (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
                           Active
@@ -199,7 +202,7 @@ function FarmerListPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-2 space-x-2 whitespace-nowrap">
+                    <td className="px-4 py-3 border-b border-slate-200 space-x-2 whitespace-nowrap">
                       <Link
                         to={`/farmers/${f.id}/payments`}
                         className="text-slate-700 hover:underline"
