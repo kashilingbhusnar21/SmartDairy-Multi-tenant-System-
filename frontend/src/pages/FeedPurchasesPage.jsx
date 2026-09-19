@@ -18,6 +18,45 @@ import { getOperationalRecordDateWindow } from "../utils/recordDateWindow";
 
 const PAGE_SIZE = 10;
 
+const FEED_TYPE_OPTIONS = [
+  { value: 'CATTLE_FEED', label: 'Cattle Feed' },
+  { value: 'SILAGE', label: 'Silage' },
+  { value: 'GREEN_FODDER', label: 'Green Fodder' },
+  { value: 'DRY_FODDER', label: 'Dry Fodder' },
+  { value: 'MINERAL_MIX', label: 'Mineral Mix' },
+  { value: 'CONCENTRATE_FEED', label: 'Concentrate Feed' },
+  { value: 'CALF_STARTER', label: 'Calf Starter' },
+  { value: 'PROTEIN_SUPPLEMENT', label: 'Protein Supplement' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+const COMPANY_NAME_OPTIONS = [
+  { value: 'AMUL', label: 'Amul' },
+  { value: 'NANDINI', label: 'Nandini' },
+  { value: 'GODREJ_AGROVET', label: 'Godrej Agrovet' },
+  { value: 'KMF', label: 'KMF' },
+  { value: 'SKM_FEEDS', label: 'SKM Feeds' },
+  { value: 'SUGUNA_FEEDS', label: 'Suguna Feeds' },
+  { value: 'ANF_FEEDS', label: 'ANF Feeds' },
+  { value: 'CP_FEEDS', label: 'CP Feeds' },
+  { value: 'LOCAL', label: 'Local' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+function formatFeedType(value) {
+  if (!value) return 'N/A';
+  const normalizedValue = value.toUpperCase();
+  const option = FEED_TYPE_OPTIONS.find(opt => opt.value === normalizedValue);
+  return option ? option.label : value;
+}
+
+function formatCompanyName(value) {
+  if (!value) return 'N/A';
+  const normalizedValue = value.toUpperCase();
+  const option = COMPANY_NAME_OPTIONS.find(opt => opt.value === normalizedValue);
+  return option ? option.label : value;
+}
+
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -47,12 +86,14 @@ function FeedPurchasesPage() {
   const [form, setForm] = useState({
     farmerId: "",
     feedDate: todayISO(),
-    feedType: "Cattle Feed",
+    feedType: "CATTLE_FEED",
     feedCompanyName: "",
     feedQuantity: "1",
     unitType: "KG",
     ratePerUnit: "0",
     notes: "",
+    customFeedType: "",
+    customCompanyName: "",
   });
 
 
@@ -98,15 +139,30 @@ function FeedPurchasesPage() {
 
   const onChange = (e) => setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
 
+  const onSelectChange = (name, value) => {
+    setForm((p) => ({ ...p, [name]: value, [name === 'feedType' ? 'customFeedType' : 'customCompanyName']: '' }));
+  };
+
   const submit = async (e) => {
     e.preventDefault();
+    
+    // Validation for OTHER custom inputs
+    if (form.feedType === 'OTHER' && (!form.customFeedType || form.customFeedType.trim() === '')) {
+      toast.error('Please enter a custom feed type');
+      return;
+    }
+    if (form.feedCompanyName === 'OTHER' && (!form.customCompanyName || form.customCompanyName.trim() === '')) {
+      toast.error('Please enter a custom company name');
+      return;
+    }
+    
     setSubmitting(true);
     try {
       const payload = {
         farmerId: Number(form.farmerId),
         feedDate: form.feedDate,
-        feedType: form.feedType,
-        feedCompanyName: form.feedCompanyName,
+        feedType: form.feedType === 'OTHER' ? form.customFeedType.toUpperCase().trim() : form.feedType,
+        feedCompanyName: form.feedCompanyName === 'OTHER' ? form.customCompanyName.toUpperCase().trim() : form.feedCompanyName,
         feedQuantity: Number(form.feedQuantity),
         unitType: form.unitType,
         ratePerUnit: Number(form.ratePerUnit),
@@ -114,7 +170,7 @@ function FeedPurchasesPage() {
       };
       const created = await createFeedPurchase(payload);
       toast.success(created.smsNotification || "Feed purchase saved");
-      setForm((p) => ({ ...p, feedCompanyName: "", feedQuantity: "1", ratePerUnit: "0", notes: "" }));
+      setForm((p) => ({ ...p, feedCompanyName: "", feedQuantity: "1", ratePerUnit: "0", notes: "", customFeedType: "", customCompanyName: "" }));
       load();
     } catch (err) {
       toast.error(getErrorMessage(err, "Create failed"));
@@ -170,19 +226,61 @@ function FeedPurchasesPage() {
         </div>
         <div>
           <label className="block text-xs text-slate-600 mb-1">Feed Type</label>
-          <input name="feedType" value={form.feedType} onChange={onChange} required placeholder="Feed type" className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+          <select
+            name="feedType"
+            value={form.feedType}
+            onChange={(e) => onSelectChange('feedType', e.target.value)}
+            required
+            className="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full"
+          >
+            {FEED_TYPE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          {form.feedType === 'OTHER' && (
+            <input
+              name="customFeedType"
+              value={form.customFeedType}
+              onChange={onChange}
+              required
+              placeholder="Enter custom feed type"
+              className="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full mt-2"
+            />
+          )}
         </div>
         <div>
           <label className="block text-xs text-slate-600 mb-1">Company</label>
-          <input name="feedCompanyName" value={form.feedCompanyName} onChange={onChange} required placeholder="Company" className="border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+          <select
+            name="feedCompanyName"
+            value={form.feedCompanyName}
+            onChange={(e) => onSelectChange('feedCompanyName', e.target.value)}
+            required
+            className="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full"
+          >
+            <option value="">Select company</option>
+            {COMPANY_NAME_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          {form.feedCompanyName === 'OTHER' && (
+            <input
+              name="customCompanyName"
+              value={form.customCompanyName}
+              onChange={onChange}
+              required
+              placeholder="Enter custom company name"
+              className="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full mt-2"
+            />
+          )}
         </div>
         <div className="flex gap-2 items-end">
           <div className="flex-1">
             <label className="block text-xs text-slate-600 mb-1">Quantity</label>
             <input name="feedQuantity" value={form.feedQuantity} onChange={onChange} required placeholder="Quantity" className="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full" />
-          </div>
-          <div className="flex items-center pb-2">
-            <span className="text-sm font-medium text-slate-600">KG</span>
           </div>
           <div className="flex-1">
             <label className="block text-xs text-slate-600 mb-1">Rate</label>
@@ -268,9 +366,9 @@ function FeedPurchasesPage() {
                     <td className="px-4 py-3">{r.feedDate}</td>
                     <td className="px-4 py-3">{r.farmerId}</td>
                     <td className="px-4 py-3">{r.farmerName}</td>
-                    <td className="px-4 py-3">{r.feedType}</td>
-                    <td className="px-4 py-3">{r.feedCompanyName}</td>
-                    <td className="px-4 py-3 text-right">{r.feedQuantity} {r.unitType}</td>
+                    <td className="px-4 py-3">{formatFeedType(r.feedType)}</td>
+                    <td className="px-4 py-3">{formatCompanyName(r.feedCompanyName)}</td>
+                    <td className="px-4 py-3 text-right">{r.feedQuantity}</td>
                     <td className="px-4 py-3 text-right">{r.ratePerUnit}</td>
                     <td className="px-4 py-3 text-right">₹ {r.totalAmount}</td>
                     <td className="px-4 py-3 text-right">₹ {r.remainingAmount}</td>

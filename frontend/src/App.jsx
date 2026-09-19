@@ -27,6 +27,8 @@ import FarmerPaymentsPage from './pages/FarmerPaymentsPage';
 import FarmerFeedPurchasesPage from './pages/FarmerFeedPurchasesPage';
 import FarmerAIChatPage from './pages/FarmerAIChatPage';
 import AdminAIChatPage from './pages/AdminAIChatPage';
+import AdminDoctorsPage from './pages/AdminDoctorsPage';
+import FarmerDoctorsPage from './pages/FarmerDoctorsPage';
 import ProtectedOutlet from './components/ProtectedOutlet';
 import AdminOutlet from './components/AdminOutlet';
 import FarmerOutlet from './components/FarmerOutlet';
@@ -66,6 +68,7 @@ function App() {
               <Route path="/farmers/:farmerId/payments" element={<FarmerPaymentHistoryPage />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/admin/settings" element={<AdminSettingsPage />} />
+              <Route path="/admin/doctors" element={<AdminDoctorsPage />} />
               <Route path="/admin/ai-chat" element={<AdminAIChatPage />} />
             </Route>
           </Route>
@@ -80,6 +83,7 @@ function App() {
               <Route path="/farmer/milk-collections" element={<FarmerMilkCollectionsPage />} />
               <Route path="/farmer/payments" element={<FarmerPaymentsPage />} />
               <Route path="/farmer/feed-purchases" element={<FarmerFeedPurchasesPage />} />
+              <Route path="/farmer/doctors" element={<FarmerDoctorsPage />} />
               <Route path="/farmer/ai-chat" element={<FarmerAIChatPage />} />
             </Route>
           </Route>

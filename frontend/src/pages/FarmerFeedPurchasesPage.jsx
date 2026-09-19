@@ -2,6 +2,25 @@ import { useEffect, useState, useMemo } from "react";
 import { getFarmerFeedPurchases } from "../services/farmer";
 import { ShoppingBag, Calendar, Package } from "lucide-react";
 
+const FEED_TYPE_OPTIONS = [
+  { value: 'CATTLE_FEED', label: 'Cattle Feed' },
+  { value: 'SILAGE', label: 'Silage' },
+  { value: 'GREEN_FODDER', label: 'Green Fodder' },
+  { value: 'DRY_FODDER', label: 'Dry Fodder' },
+  { value: 'MINERAL_MIX', label: 'Mineral Mix' },
+  { value: 'CONCENTRATE_FEED', label: 'Concentrate Feed' },
+  { value: 'CALF_STARTER', label: 'Calf Starter' },
+  { value: 'PROTEIN_SUPPLEMENT', label: 'Protein Supplement' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+function formatFeedType(value) {
+  if (!value) return 'N/A';
+  const normalizedValue = value.toUpperCase();
+  const option = FEED_TYPE_OPTIONS.find(opt => opt.value === normalizedValue);
+  return option ? option.label : value;
+}
+
 function FarmerFeedPurchasesPage() {
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -70,7 +89,7 @@ function FarmerFeedPurchasesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-600">Total Quantity</p>
-              <p className="text-2xl font-bold text-slate-800">{totalQuantity.toFixed(2)} {(formattedPurchases[0]?.unitType) || 'kg'}</p>
+              <p className="text-2xl font-bold text-slate-800">{totalQuantity.toFixed(2)}</p>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <Package className="text-blue-600" size={24} />
@@ -93,7 +112,7 @@ function FarmerFeedPurchasesPage() {
                   <tr className="border-b border-slate-200">
                     <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600">Date</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600">Feed Type</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600">Quantity (kg)</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600">Quantity</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600">Rate (₹/kg)</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600">Amount (₹)</th>
                   </tr>
@@ -104,8 +123,8 @@ function FarmerFeedPurchasesPage() {
                       <td className="py-3 px-4 text-sm text-slate-800">
                         {purchase.displayDate}
                       </td>
-                      <td className="py-3 px-4 text-sm text-slate-800">{purchase?.feedType || "N/A"}</td>
-                      <td className="py-3 px-4 text-sm text-slate-800">{purchase.quantity.toFixed(2)} {purchase.unitType}</td>
+                      <td className="py-3 px-4 text-sm text-slate-800">{formatFeedType(purchase?.feedType) || "N/A"}</td>
+                      <td className="py-3 px-4 text-sm text-slate-800">{purchase.quantity.toFixed(2)}</td>
                       <td className="py-3 px-4 text-sm text-slate-800">₹{purchase.rate.toFixed(2)}</td>
                       <td className="py-3 px-4 text-sm font-semibold text-emerald-600">
                         ₹{purchase.amount.toFixed(2)}

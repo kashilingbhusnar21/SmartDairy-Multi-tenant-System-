@@ -7,10 +7,12 @@ import com.lowagie.text.Paragraph;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
+import com.smartdairy.dto.CompanyName;
 import com.smartdairy.dto.FeedChartPointResponse;
 import com.smartdairy.dto.FeedPurchaseRequest;
 import com.smartdairy.dto.FeedPurchaseResponse;
 import com.smartdairy.dto.FeedSummaryResponse;
+import com.smartdairy.dto.FeedType;
 import com.smartdairy.entity.Farmer;
 import com.smartdairy.entity.FarmerFinancialAccount;
 import com.smartdairy.entity.FarmerFinancialTransaction;
@@ -62,6 +64,23 @@ public class FeedPurchaseServiceImpl implements FeedPurchaseService {
         User admin = userService.getLoggedInUser();
         Farmer farmer = farmerRepository.findByIdAndAdmin(request.getFarmerId(), admin)
                 .orElseThrow(() -> new ResourceNotFoundException("Farmer not found with id: " + request.getFarmerId()));
+        
+        // Normalize and validate feed type
+        String normalizedFeedType = request.getFeedType().trim().toUpperCase();
+        if (FeedType.isValid(normalizedFeedType)) {
+            // If it's a valid enum value, use the enum name
+            normalizedFeedType = FeedType.valueOf(normalizedFeedType).name();
+        }
+        // If not a valid enum, accept it as custom value (already uppercased)
+        
+        // Normalize and validate company name
+        String normalizedCompanyName = request.getFeedCompanyName().trim().toUpperCase();
+        if (CompanyName.isValid(normalizedCompanyName)) {
+            // If it's a valid enum value, use the enum name
+            normalizedCompanyName = CompanyName.valueOf(normalizedCompanyName).name();
+        }
+        // If not a valid enum, accept it as custom value (already uppercased)
+        
         BigDecimal total = request.getFeedQuantity()
                 .multiply(request.getRatePerUnit())
                 .setScale(2, RoundingMode.HALF_UP);
@@ -69,8 +88,8 @@ public class FeedPurchaseServiceImpl implements FeedPurchaseService {
                 .admin(admin)
                 .farmer(farmer)
                 .feedDate(request.getFeedDate())
-                .feedType(request.getFeedType().trim())
-                .feedCompanyName(request.getFeedCompanyName().trim())
+                .feedType(normalizedFeedType)
+                .feedCompanyName(normalizedCompanyName)
                 .feedQuantity(request.getFeedQuantity().setScale(2, RoundingMode.HALF_UP))
                 .unitType(request.getUnitType().trim())
                 .ratePerUnit(request.getRatePerUnit().setScale(2, RoundingMode.HALF_UP))

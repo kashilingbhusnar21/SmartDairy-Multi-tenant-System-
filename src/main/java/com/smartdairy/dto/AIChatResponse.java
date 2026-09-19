@@ -18,4 +18,6 @@ public class AIChatResponse {
     private String model;
     
     private String language;
+    
+    private String modelUsed;
 }

@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   Bot,
+  Stethoscope,
 } from "lucide-react";
 
 const navClass = ({ isActive }) =>
@@ -100,6 +101,10 @@ function FarmerSidebar({ onNavigate }) {
           <NavLink to="/farmer/feed-purchases" className={navClass} onClick={handleNav}>
             <ShoppingBag size={18} />
             <span>Feed Purchases</span>
+          </NavLink>
+          <NavLink to="/farmer/doctors" className={navClass} onClick={handleNav}>
+            <Stethoscope size={18} />
+            <span>Veterinary Doctors</span>
           </NavLink>
           <NavLink to="/farmer/ai-chat" className={navClass} onClick={handleNav}>
             <Bot size={18} />
