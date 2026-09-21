@@ -19,6 +19,8 @@ import {
   X,
   Bot,
   Stethoscope,
+  Wrench,
+  Store,
 } from "lucide-react";
 
 const navClass = ({ isActive }) =>
@@ -147,6 +149,14 @@ function Sidebar({ onNavigate }) {
               <NavLink to="/admin/doctors" className={navClass} onClick={handleNav}>
                 <Stethoscope size={18} />
                 <span>Doctors</span>
+              </NavLink>
+              <NavLink to="/admin/vendors" className={navClass} onClick={handleNav}>
+                <Store size={18} />
+                <span>Vendors</span>
+              </NavLink>
+              <NavLink to="/admin/equipment" className={navClass} onClick={handleNav}>
+                <Wrench size={18} />
+                <span>Equipment</span>
               </NavLink>
             </>
           ) : null}

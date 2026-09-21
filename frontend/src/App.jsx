@@ -29,6 +29,11 @@ import FarmerAIChatPage from './pages/FarmerAIChatPage';
 import AdminAIChatPage from './pages/AdminAIChatPage';
 import AdminDoctorsPage from './pages/AdminDoctorsPage';
 import FarmerDoctorsPage from './pages/FarmerDoctorsPage';
+import AdminVendorsPage from './pages/AdminVendorsPage';
+import AdminEquipmentPage from './pages/AdminEquipmentPage';
+import FarmerVendorsPage from './pages/FarmerVendorsPage';
+import FarmerEquipmentListPage from './pages/FarmerEquipmentListPage';
+import FarmerEquipmentDetailPage from './pages/FarmerEquipmentDetailPage';
 import ProtectedOutlet from './components/ProtectedOutlet';
 import AdminOutlet from './components/AdminOutlet';
 import FarmerOutlet from './components/FarmerOutlet';
@@ -69,6 +74,8 @@ function App() {
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/admin/settings" element={<AdminSettingsPage />} />
               <Route path="/admin/doctors" element={<AdminDoctorsPage />} />
+              <Route path="/admin/vendors" element={<AdminVendorsPage />} />
+              <Route path="/admin/equipment" element={<AdminEquipmentPage />} />
               <Route path="/admin/ai-chat" element={<AdminAIChatPage />} />
             </Route>
           </Route>
@@ -84,6 +91,9 @@ function App() {
               <Route path="/farmer/payments" element={<FarmerPaymentsPage />} />
               <Route path="/farmer/feed-purchases" element={<FarmerFeedPurchasesPage />} />
               <Route path="/farmer/doctors" element={<FarmerDoctorsPage />} />
+              <Route path="/farmers/vendors" element={<FarmerVendorsPage />} />
+              <Route path="/farmers/equipment/vendor/:vendorId" element={<FarmerEquipmentListPage />} />
+              <Route path="/farmers/equipment/:id" element={<FarmerEquipmentDetailPage />} />
               <Route path="/farmer/ai-chat" element={<FarmerAIChatPage />} />
             </Route>
           </Route>
