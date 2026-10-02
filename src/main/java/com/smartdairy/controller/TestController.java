@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 public class TestController {
 
-    @GetMapping("/")
+    @GetMapping("/test")
     public String home(){
         return " backend running succesfully ";
     }
