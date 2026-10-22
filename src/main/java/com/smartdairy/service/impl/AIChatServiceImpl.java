@@ -312,6 +312,10 @@ public class AIChatServiceImpl implements AIChatService {
                 
                 IMPORTANT: For serious health issues, always suggest consulting a veterinarian.
                 If unsure about any advice, recommend consulting a local expert.
+                
+                CRITICAL: You must ONLY answer questions related to dairy farming, cattle, milk production, and dairy operations.
+                If the user asks about non-dairy topics (politics, sports, entertainment, general knowledge, technology, etc.),
+                politely decline and say you can only help with dairy farming questions.
                 """.formatted(languageInstruction);
         } else {
             basePrompt = """
@@ -334,6 +338,10 @@ public class AIChatServiceImpl implements AIChatService {
                 - Pricing and analytics
                 
                 Focus on business and operational aspects.
+                
+                CRITICAL: You must ONLY answer questions related to dairy management, dairy operations, system usage, and dairy business.
+                If the user asks about non-dairy topics (politics, sports, entertainment, general knowledge, technology, etc.),
+                politely decline and say you can only help with dairy management questions.
                 """.formatted(languageInstruction);
         }
 
