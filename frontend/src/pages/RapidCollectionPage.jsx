@@ -645,21 +645,30 @@ export default function RapidCollectionPage() {
               <div className="relative">
                 <input
                   ref={farmerIdRef}
-                  type="number"
+                  type="text"
                   inputMode="numeric"
+                  pattern="[0-9]*"
                   placeholder="e.g. 16"
                   value={farmerId}
                   onFocus={() => setActiveField("farmerId")}
+                  onWheel={(e) => e.target.blur()}
                   onChange={(e) => {
-                    setFarmerId(e.target.value);
+                    // Strictly allow only numbers (0-9), strip all letters/special characters
+                    const digitsOnly = e.target.value.replace(/[^0-9]/g, "");
+                    setFarmerId(digitsOnly);
                     if (farmerData) setFarmerData(null);
                     if (farmerError) setFarmerError("");
                   }}
                   onBlur={() => {
                     if (farmerId && !farmerData) performFarmerLookup(farmerId);
                   }}
-                  onKeyDown={handleFarmerIdKeyDown}
-                  className={`w-full bg-slate-900 border-2 rounded-xl px-4 py-3 text-3xl font-black tracking-wider text-emerald-400 placeholder-slate-600 focus:outline-none transition-all shadow-inner ${
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                      e.preventDefault();
+                    }
+                    handleFarmerIdKeyDown(e);
+                  }}
+                  className={`w-full bg-slate-900 border-2 rounded-xl px-4 py-3 text-3xl font-black tracking-wider text-emerald-400 placeholder-slate-600 focus:outline-none transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                     farmerError
                       ? "border-red-500 ring-2 ring-red-500/30"
                       : farmerData
