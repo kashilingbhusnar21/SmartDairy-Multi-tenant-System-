@@ -76,6 +76,7 @@ export default function RapidCollectionPage() {
   const qtyRef = useRef(null);
   const fatRef = useRef(null);
   const snfRef = useRef(null);
+  const submitBtnRef = useRef(null);
 
   // Hardware integration via Web Serial Hook
   const handleHardwareData = useCallback((data) => {
@@ -204,9 +205,16 @@ export default function RapidCollectionPage() {
     if (e.key === "Enter" || e.key === "Tab") {
       e.preventDefault();
       const success = await performFarmerLookup(farmerId);
-      if (success && qtyRef.current) {
-        qtyRef.current.focus();
-        setActiveField("quantityLiters");
+      if (success) {
+        // If readings are already present from hardware/preset, submit immediately!
+        if (quantityLiters && fatPercentage && snfPercentage) {
+          handleSubmit();
+        } else {
+          // Direct cursor to RECORD INTAKE button (bypass weight, fat, snf completely!)
+          if (submitBtnRef.current) {
+            submitBtnRef.current.focus();
+          }
+        }
       }
     }
   };
@@ -397,15 +405,15 @@ export default function RapidCollectionPage() {
       if (effectiveField === "farmerId") {
         performFarmerLookup(farmerId).then((ok) => {
           if (ok) {
-            if (!hardwareLock && qtyRef.current) {
-              qtyRef.current.focus();
-              setActiveField("quantityLiters");
-            } else if (quantityLiters && fatPercentage && snfPercentage) {
+            if (quantityLiters && fatPercentage && snfPercentage) {
               handleSubmit();
             } else {
-              toast("Farmer locked. Waiting for readings from Ekomilk / Scale...", {
+              if (submitBtnRef.current) {
+                submitBtnRef.current.focus();
+              }
+              toast("Farmer confirmed. Waiting for Weight/FAT readings...", {
                 icon: "⏳",
-                duration: 2500
+                duration: 2000
               });
             }
           }
@@ -729,9 +737,11 @@ export default function RapidCollectionPage() {
                   ref={qtyRef}
                   type="number"
                   step="0.01"
+                  tabIndex={-1}
                   placeholder={hardwareLock ? "Auto Scale" : "0.00"}
                   value={quantityLiters}
                   readOnly={hardwareLock}
+                  onWheel={(e) => e.target.blur()}
                   onFocus={() => {
                     if (hardwareLock) {
                       toast("🔒 Weight is automated from Weighing Scale. Toggle 'Manual Override' to edit.", {
@@ -743,8 +753,11 @@ export default function RapidCollectionPage() {
                     }
                   }}
                   onChange={(e) => setQuantityLiters(e.target.value)}
-                  onKeyDown={handleQtyKeyDown}
-                  className={`w-full bg-transparent text-2xl font-black text-white focus:outline-none placeholder-slate-600 font-mono ${
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowUp" || e.key === "ArrowDown") e.preventDefault();
+                    handleQtyKeyDown(e);
+                  }}
+                  className={`w-full bg-transparent text-2xl font-black text-white focus:outline-none placeholder-slate-600 font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                     hardwareLock ? "cursor-not-allowed select-none opacity-90" : ""
                   }`}
                 />
@@ -771,9 +784,11 @@ export default function RapidCollectionPage() {
                   ref={fatRef}
                   type="number"
                   step="0.01"
+                  tabIndex={-1}
                   placeholder={hardwareLock ? "Auto Ekomilk" : "0.00"}
                   value={fatPercentage}
                   readOnly={hardwareLock}
+                  onWheel={(e) => e.target.blur()}
                   onFocus={() => {
                     if (hardwareLock) {
                       toast("🔒 FAT is automated from Ekomilk. Toggle 'Manual Override' to edit.", {
@@ -785,8 +800,11 @@ export default function RapidCollectionPage() {
                     }
                   }}
                   onChange={(e) => setFatPercentage(e.target.value)}
-                  onKeyDown={handleFatKeyDown}
-                  className={`w-full bg-transparent text-2xl font-black text-white focus:outline-none placeholder-slate-600 font-mono ${
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowUp" || e.key === "ArrowDown") e.preventDefault();
+                    handleFatKeyDown(e);
+                  }}
+                  className={`w-full bg-transparent text-2xl font-black text-white focus:outline-none placeholder-slate-600 font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                     hardwareLock ? "cursor-not-allowed select-none opacity-90" : ""
                   }`}
                 />
@@ -813,9 +831,11 @@ export default function RapidCollectionPage() {
                   ref={snfRef}
                   type="number"
                   step="0.01"
+                  tabIndex={-1}
                   placeholder={hardwareLock ? "Auto Ekomilk" : "0.00"}
                   value={snfPercentage}
                   readOnly={hardwareLock}
+                  onWheel={(e) => e.target.blur()}
                   onFocus={() => {
                     if (hardwareLock) {
                       toast("🔒 SNF is automated from Ekomilk. Toggle 'Manual Override' to edit.", {
@@ -827,8 +847,11 @@ export default function RapidCollectionPage() {
                     }
                   }}
                   onChange={(e) => setSnfPercentage(e.target.value)}
-                  onKeyDown={handleSnfKeyDown}
-                  className={`w-full bg-transparent text-2xl font-black text-white focus:outline-none placeholder-slate-600 font-mono ${
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowUp" || e.key === "ArrowDown") e.preventDefault();
+                    handleSnfKeyDown(e);
+                  }}
+                  className={`w-full bg-transparent text-2xl font-black text-white focus:outline-none placeholder-slate-600 font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                     hardwareLock ? "cursor-not-allowed select-none opacity-90" : ""
                   }`}
                 />
@@ -872,9 +895,10 @@ export default function RapidCollectionPage() {
               </button>
 
               <button
+                ref={submitBtnRef}
                 type="submit"
                 disabled={submitting || !farmerData || !quantityLiters || !fatPercentage || !snfPercentage}
-                className="col-span-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black py-3.5 px-6 rounded-xl shadow-lg shadow-emerald-500/25 transition-all text-base sm:text-lg flex items-center justify-center gap-2 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale"
+                className="col-span-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black py-3.5 px-6 rounded-xl shadow-lg shadow-emerald-500/25 transition-all text-base sm:text-lg flex items-center justify-center gap-2 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale focus:outline-none focus:ring-4 focus:ring-emerald-400/70"
               >
                 {submitting ? (
                   <>
