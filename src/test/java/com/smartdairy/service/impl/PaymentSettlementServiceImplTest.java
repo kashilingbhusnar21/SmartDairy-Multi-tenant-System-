@@ -114,21 +114,28 @@ class PaymentSettlementServiceImplTest {
     }
 
     @Test
-    @DisplayName("settlePayment: Safety guard throws IllegalArgumentException when deductions exceed payment amount")
-    void settlePayment_WhenDeductionsExceedAmount_ThrowsIllegalArgumentException() {
-        // Arrange: Farmer only earned 1,000 but owes 2,000 in debts
+    @DisplayName("settlePayment: Applies partial deduction up to available amount when debts exceed payment amount")
+    void settlePayment_WhenDeductionsExceedAmount_AppliesPartialDeduction() {
+        // Arrange: Farmer earned 1,000 but owes 1,500 advance + 500 loan (2,000 total)
         testPayment.setAmount(new BigDecimal("1000.00"));
 
         when(paymentRepository.findById(100L)).thenReturn(Optional.of(testPayment));
         when(financialAccountRepository.findByAdminAndFarmer(testAdmin, testFarmer)).thenReturn(Optional.of(testAccount));
+        when(financialCalculationService.calculateTotalPendingBalance(testAccount)).thenReturn(new BigDecimal("2000.00"));
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // Act & Assert: Must throw exception to prevent negative payout
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
-                paymentSettlementService.settlePayment(100L, markPaidRequest)
-        );
+        // Act
+        PaymentSettlementResult result = paymentSettlementService.settlePayment(100L, markPaidRequest);
 
-        assertTrue(ex.getMessage().contains("Payment amount cannot be negative"));
-        verify(paymentRepository, never()).save(any());
+        // Assert
+        assertTrue(result.success());
+        Payment saved = result.payment();
+        assertEquals(PaymentStatus.PAID, saved.getStatus());
+        assertEquals(new BigDecimal("0.00"), saved.getAmount()); // Full 1,000 went toward advance debt
+
+        // Advance recovered partially (1,000 out of 1,500), Loan not recovered yet (0)
+        verify(financialRecoveryService, times(1)).recoverAdvance(eq(testAdmin), eq(testFarmer), eq(testAccount), eq(new BigDecimal("1000.00")), anyString(), anyString());
+        verify(financialRecoveryService, never()).recoverLoan(any(), any(), any(), any(), any(), any());
     }
 
     @Test

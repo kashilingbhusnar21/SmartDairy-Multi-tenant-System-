@@ -6,10 +6,7 @@ import FarmerSelect from "../components/ui/FarmerSelect";
 import { listDailyCollections } from "../services/milkCollections";
 import { generatePaymentFromCollection } from "../services/payments";
 import { getErrorMessage } from "../utils/errorMessage";
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
+import { todayISO } from "../utils/dateUtils";
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];

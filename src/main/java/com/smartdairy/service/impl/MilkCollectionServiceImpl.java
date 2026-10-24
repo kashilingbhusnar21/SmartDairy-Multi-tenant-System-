@@ -8,7 +8,12 @@ import com.smartdairy.entity.MilkCollection;
 import com.smartdairy.entity.User;
 import com.smartdairy.exception.ResourceNotFoundException;
 import com.smartdairy.repository.FarmerRepository;
+import com.smartdairy.entity.Payment;
 import com.smartdairy.repository.MilkCollectionRepository;
+import com.smartdairy.repository.PaymentRepository;
+import java.util.Collections;
+import java.util.Map;
+import java.util.stream.Collectors;
 import com.smartdairy.service.MilkCollectionService;
 import com.smartdairy.service.MilkPricingService;
 import com.smartdairy.service.OperationalRecordDateValidator;
@@ -24,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MilkCollectionServiceImpl implements MilkCollectionService {
 
     private final MilkCollectionRepository milkCollectionRepository;
+    private final PaymentRepository paymentRepository;
     private final FarmerRepository farmerRepository;
     private final MilkPricingService milkPricingService;
     private final SmsService smsService;
@@ -86,8 +92,19 @@ public class MilkCollectionServiceImpl implements MilkCollectionService {
     @Transactional(readOnly = true)
     public List<MilkCollectionResponse> getDaily(LocalDate date) {
         User admin = userService.getLoggedInUser();
-        return milkCollectionRepository.findByAdminAndDateOrderByFarmer_FullNameAscShiftAsc(admin, date).stream()
-                .map(this::toResponse)
+        List<MilkCollection> collections = milkCollectionRepository
+                .findByAdminAndDateOrderByFarmer_FullNameAscShiftAsc(admin, date);
+
+        if (collections.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Long> collectionIds = collections.stream().map(MilkCollection::getId).toList();
+        Map<Long, Payment> paymentMap = paymentRepository.findByAdminAndMilkCollection_IdIn(admin, collectionIds).stream()
+                .collect(Collectors.toMap(p -> p.getMilkCollection().getId(), p -> p, (a, b) -> a));
+
+        return collections.stream()
+                .map(col -> toResponse(col, paymentMap.get(col.getId())))
                 .toList();
     }
 
@@ -158,7 +175,14 @@ public class MilkCollectionServiceImpl implements MilkCollectionService {
         entity.setTotalAmount(preview.getTotalAmount());
     }
 
-    private MilkCollectionResponse toResponse(MilkCollection entity) {
+    private MilkCollectionResponse toResponse(MilkCollection entity, Payment payment) {
+        String paymentStatus = "UNPAID";
+        Long paymentId = null;
+        if (payment != null) {
+            paymentStatus = payment.getStatus() != null ? payment.getStatus().name() : "PENDING";
+            paymentId = payment.getId();
+        }
+
         return MilkCollectionResponse.builder()
                 .id(entity.getId())
                 .farmerId(entity.getFarmer().getId())
@@ -170,6 +194,18 @@ public class MilkCollectionServiceImpl implements MilkCollectionService {
                 .snfPercentage(entity.getSnfPercentage())
                 .ratePerLiter(entity.getRatePerLiter())
                 .totalAmount(entity.getTotalAmount())
+                .paymentStatus(paymentStatus)
+                .paymentId(paymentId)
                 .build();
+    }
+
+    private MilkCollectionResponse toResponse(MilkCollection entity) {
+        try {
+            User admin = userService.getLoggedInUser();
+            Payment payment = paymentRepository.findByAdminAndMilkCollection_Id(admin, entity.getId()).orElse(null);
+            return toResponse(entity, payment);
+        } catch (Exception e) {
+            return toResponse(entity, null);
+        }
     }
 }

@@ -4,10 +4,7 @@ import PageLoader from "../components/ui/PageLoader";
 import { getDailyStats } from "../services/milkCollections";
 import { getPaymentDashboardStats } from "../services/payments";
 import { Milk, DollarSign, FileText, Clock, CheckCircle, Calendar, Shield, Activity } from "lucide-react";
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
+import { todayISO } from "../utils/dateUtils";
 
 function HomePage() {
   const [secureMessage, setSecureMessage] = useState("");

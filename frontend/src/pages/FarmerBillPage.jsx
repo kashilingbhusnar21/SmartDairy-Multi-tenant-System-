@@ -6,15 +6,7 @@ import PageLoader from "../components/ui/PageLoader";
 import FarmerSelect from "../components/ui/FarmerSelect";
 import { exportFarmerBill, previewFarmerBill } from "../services/farmerBill";
 import { getErrorMessage } from "../utils/errorMessage";
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function monthStartISO() {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
-}
+import { todayISO, monthStartISO } from "../utils/dateUtils";
 
 function formatDailyAmount(value) {
   const amount = Number(value);

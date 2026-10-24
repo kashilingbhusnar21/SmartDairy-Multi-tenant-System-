@@ -9,6 +9,7 @@ import PageLoader from "../components/ui/PageLoader";
 import ErrorState from "../components/ui/ErrorState";
 import FarmerSelect from "../components/ui/FarmerSelect";
 import { listFarmers } from "../services/farmers";
+import { todayISO, monthStartISO } from "../utils/dateUtils";
 
 function FinancialAnalyticsPage() {
   const [loading, setLoading] = useState(true);
@@ -17,10 +18,8 @@ function FinancialAnalyticsPage() {
   const [farmers, setFarmers] = useState([]);
 
   const [filters, setFilters] = useState({
-    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-      .toISOString()
-      .slice(0, 10),
-    to: new Date().toISOString().slice(0, 10),
+    from: monthStartISO(),
+    to: todayISO(),
     farmerId: "",
     pendingType: "",
   });

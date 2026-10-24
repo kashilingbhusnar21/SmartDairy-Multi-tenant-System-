@@ -22,6 +22,8 @@ import {
   downloadWeeklyMilkReport,
 } from "../services/reports";
 
+import { toLocalDateISO, todayISO } from "../utils/dateUtils";
+
 function isoWeekRange() {
   const d = new Date();
   const day = d.getDay();
@@ -30,8 +32,7 @@ function isoWeekRange() {
   mon.setDate(d.getDate() + diffToMon);
   const sun = new Date(mon);
   sun.setDate(mon.getDate() + 6);
-  const fmt = (x) => x.toISOString().slice(0, 10);
-  return { start: fmt(mon), end: fmt(sun) };
+  return { start: toLocalDateISO(mon), end: toLocalDateISO(sun) };
 }
 
 const chartColors = {
@@ -56,7 +57,7 @@ function AdminPage() {
   const [farmerSearch, setFarmerSearch] = useState("");
   const [debouncedFarmer, setDebouncedFarmer] = useState("");
 
-  const [repDaily, setRepDaily] = useState(today.toISOString().slice(0, 10));
+  const [repDaily, setRepDaily] = useState(todayISO());
   const [repWeekFrom, setRepWeekFrom] = useState(week.start);
   const [repWeekTo, setRepWeekTo] = useState(week.end);
   const [repMonthY, setRepMonthY] = useState(today.getFullYear());

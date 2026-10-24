@@ -16,6 +16,9 @@ public interface MilkCollectionRepository extends JpaRepository<MilkCollection, 
 
     List<MilkCollection> findByAdminAndDateOrderByFarmer_FullNameAscShiftAsc(User admin, LocalDate date);
 
+    List<MilkCollection> findByAdminAndDateAndShiftOrderByFarmer_FullNameAsc(
+            User admin, LocalDate date, MilkCollection.Shift shift);
+
     List<MilkCollection> findByAdminAndDateBetweenOrderByDateAscFarmer_FullNameAsc(
             User admin, LocalDate from, LocalDate to);
 

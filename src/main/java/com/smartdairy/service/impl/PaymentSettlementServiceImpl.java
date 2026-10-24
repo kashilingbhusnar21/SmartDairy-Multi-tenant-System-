@@ -66,23 +66,20 @@ public class PaymentSettlementServiceImpl implements PaymentSettlementService {
         BigDecimal pendingOther = FinancialMath.scale(account.getPendingOther());
 
         // Feed is already deducted during Payment Generation.
-        // Therefore only manual other deductions should be deducted here.
+        // Recover outstanding advance, loan, and other deductions up to available payment amount.
+        BigDecimal availablePaymentAmount = FinancialMath.scale(payment.getAmount());
+        BigDecimal remainingToDeduct = availablePaymentAmount;
 
-        BigDecimal manualOther = pendingOther;
+        BigDecimal advanceToDeduct = pendingAdvance.min(remainingToDeduct).setScale(2, RoundingMode.HALF_UP);
+        remainingToDeduct = remainingToDeduct.subtract(advanceToDeduct).setScale(2, RoundingMode.HALF_UP);
 
-        BigDecimal totalDeductions = pendingAdvance
-                .add(pendingLoan)
-                .add(manualOther);
+        BigDecimal loanToDeduct = pendingLoan.min(remainingToDeduct).setScale(2, RoundingMode.HALF_UP);
+        remainingToDeduct = remainingToDeduct.subtract(loanToDeduct).setScale(2, RoundingMode.HALF_UP);
 
-        BigDecimal finalPaymentAmount = payment.getAmount()
-                .subtract(totalDeductions)
-                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal otherToDeduct = pendingOther.min(remainingToDeduct).setScale(2, RoundingMode.HALF_UP);
+        remainingToDeduct = remainingToDeduct.subtract(otherToDeduct).setScale(2, RoundingMode.HALF_UP);
 
-        if (finalPaymentAmount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException(
-                    "Total deductions (" + totalDeductions + ") exceed payment amount (" + payment.getAmount() + "). " +
-                    "Payment amount cannot be negative. Please adjust pending balances or payment amount.");
-        }
+        BigDecimal finalPaymentAmount = remainingToDeduct;
 
         payment.setStatus(PaymentStatus.PAID);
         payment.setPaymentDate(request.getPaymentDate());
@@ -93,32 +90,32 @@ public class PaymentSettlementServiceImpl implements PaymentSettlementService {
 
         String paymentRef = "PAYMENT-" + payment.getId();
 
-        if (pendingAdvance.compareTo(BigDecimal.ZERO) > 0) {
+        if (advanceToDeduct.compareTo(BigDecimal.ZERO) > 0) {
             financialRecoveryService.recoverAdvance(
                     admin,
                     farmer,
                     account,
-                    pendingAdvance,
+                    advanceToDeduct,
                     paymentRef,
                     "Advance recovered via payment settlement");
         }
 
-        if (pendingLoan.compareTo(BigDecimal.ZERO) > 0) {
+        if (loanToDeduct.compareTo(BigDecimal.ZERO) > 0) {
             financialRecoveryService.recoverLoan(
                     admin,
                     farmer,
                     account,
-                    pendingLoan,
+                    loanToDeduct,
                     paymentRef,
                     "Loan recovered via payment settlement");
         }
 
-        if (manualOther.compareTo(BigDecimal.ZERO) > 0) {
+        if (otherToDeduct.compareTo(BigDecimal.ZERO) > 0) {
             financialRecoveryService.recoverOther(
                     admin,
                     farmer,
                     account,
-                    manualOther,
+                    otherToDeduct,
                     paymentRef,
                     "Other deduction recovered via payment settlement");
         }

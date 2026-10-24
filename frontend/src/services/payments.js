@@ -6,6 +6,18 @@ export function generatePaymentFromCollection(milkCollectionId) {
     .then((res) => res.data);
 }
 
+export function generateBatchPayments(payload) {
+  return api
+    .post("/payments/batch-from-collections", payload)
+    .then((res) => res.data);
+}
+
+export function batchMarkPaid(payload) {
+  return api
+    .put("/payments/batch-mark-paid", payload)
+    .then((res) => res.data);
+}
+
 export function listPayments(status) {
   const params = status ? { status } : undefined;
   return api.get("/payments", { params }).then((res) => res.data);

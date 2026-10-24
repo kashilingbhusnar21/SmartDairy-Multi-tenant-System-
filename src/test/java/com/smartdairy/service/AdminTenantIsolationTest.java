@@ -13,6 +13,7 @@ import com.smartdairy.entity.User;
 import com.smartdairy.exception.ResourceNotFoundException;
 import com.smartdairy.repository.FarmerRepository;
 import com.smartdairy.repository.MilkCollectionRepository;
+import com.smartdairy.repository.PaymentRepository;
 import com.smartdairy.service.impl.FarmerServiceImpl;
 import com.smartdairy.service.impl.MilkCollectionServiceImpl;
 import com.smartdairy.service.impl.SmsService;
@@ -55,6 +56,9 @@ class AdminTenantIsolationTest {
     @Mock
     private OperationalRecordDateValidator operationalRecordDateValidator;
 
+    @Mock
+    private PaymentRepository paymentRepository;
+
     private FarmerServiceImpl farmerService;
     private MilkCollectionServiceImpl milkCollectionService;
 
@@ -67,6 +71,7 @@ class AdminTenantIsolationTest {
         farmerService = new FarmerServiceImpl(farmerRepository, smsService, userService, passwordEncoder);
         milkCollectionService = new MilkCollectionServiceImpl(
                 milkCollectionRepository,
+                paymentRepository,
                 farmerRepository,
                 milkPricingService,
                 smsService,

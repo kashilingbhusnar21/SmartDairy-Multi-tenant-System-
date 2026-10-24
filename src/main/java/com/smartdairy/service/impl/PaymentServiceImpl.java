@@ -1,6 +1,11 @@
 package com.smartdairy.service.impl;
 
+import com.smartdairy.dto.BatchMarkPaidRequest;
+import com.smartdairy.dto.BatchMarkPaidResponse;
+import com.smartdairy.dto.BatchPaymentRequest;
+import com.smartdairy.dto.BatchPaymentResponse;
 import com.smartdairy.dto.MarkPaymentPaidRequest;
+import java.util.ArrayList;
 import com.smartdairy.dto.PaymentDashboardStatsResponse;
 import com.smartdairy.dto.PaymentResponse;
 import com.smartdairy.dto.PaymentSummaryResponse;
@@ -58,6 +63,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final SmsService smsService;
     private final UserService userService;
     private final CloudinaryService cloudinaryService;
+    private final PaymentBatchProcessor paymentBatchProcessor;
 
     @Override
     @Transactional
@@ -131,6 +137,114 @@ public class PaymentServiceImpl implements PaymentService {
             System.out.println("Payment sms failed " + e.getMessage());
         }
         return toResponse(settlementResult.payment());
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public BatchPaymentResponse generateBatchFromCollections(BatchPaymentRequest request) {
+        User admin = userService.getLoggedInUser();
+        LocalDate date = request.getDate();
+        MilkCollection.Shift shift = request.getShift();
+
+        List<MilkCollection> collections;
+        if (shift != null) {
+            collections = milkCollectionRepository.findByAdminAndDateAndShiftOrderByFarmer_FullNameAsc(admin, date, shift);
+        } else {
+            collections = milkCollectionRepository.findByAdminAndDateOrderByFarmer_FullNameAscShiftAsc(admin, date);
+        }
+
+        int successCount = 0;
+        int skippedCount = 0;
+        int failedCount = 0;
+        List<Long> createdPaymentIds = new ArrayList<>();
+        List<String> details = new ArrayList<>();
+
+        for (MilkCollection col : collections) {
+            try {
+                Payment saved = paymentBatchProcessor.processSingleCollection(admin, col.getId());
+                createdPaymentIds.add(saved.getId());
+                successCount++;
+                details.add(String.format("Collection #%d (%s, %s): Created payment #%d for Rs.%s",
+                        col.getId(),
+                        col.getFarmer().getFullName(),
+                        col.getShift(),
+                        saved.getId(),
+                        saved.getAmount()));
+            } catch (IllegalArgumentException e) {
+                if (e.getMessage() != null && e.getMessage().contains("already exists")) {
+                    skippedCount++;
+                    details.add(String.format("Collection #%d (%s, %s): Skipped - payment already exists",
+                            col.getId(),
+                            col.getFarmer().getFullName(),
+                            col.getShift()));
+                } else {
+                    failedCount++;
+                    details.add(String.format("Collection #%d (%s, %s): Failed - %s",
+                            col.getId(),
+                            col.getFarmer().getFullName(),
+                            col.getShift(),
+                            e.getMessage()));
+                }
+            } catch (Exception e) {
+                failedCount++;
+                details.add(String.format("Collection #%d (%s, %s): Failed - %s",
+                        col.getId(),
+                        col.getFarmer().getFullName(),
+                        col.getShift(),
+                        e.getMessage()));
+            }
+        }
+
+        return BatchPaymentResponse.builder()
+                .totalProcessed(collections.size())
+                .successCount(successCount)
+                .skippedCount(skippedCount)
+                .failedCount(failedCount)
+                .createdPaymentIds(createdPaymentIds)
+                .details(details)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BatchMarkPaidResponse batchMarkPaid(BatchMarkPaidRequest request) {
+        User admin = userService.getLoggedInUser();
+        List<Long> paymentIds = request.getPaymentIds();
+
+        int successCount = 0;
+        int failedCount = 0;
+        List<Long> paidPaymentIds = new ArrayList<>();
+        List<String> details = new ArrayList<>();
+
+        MarkPaymentPaidRequest singleRequest = new MarkPaymentPaidRequest();
+        singleRequest.setPaymentDate(request.getPaymentDate());
+        singleRequest.setPaymentMethod(request.getPaymentMethod());
+        singleRequest.setRemarks(request.getRemarks() != null && !request.getRemarks().isBlank() ? request.getRemarks() : "Batch payment");
+
+        for (Long paymentId : paymentIds) {
+            try {
+                Payment settled = paymentBatchProcessor.processSingleMarkPaid(admin, paymentId, singleRequest);
+                paidPaymentIds.add(settled.getId());
+                successCount++;
+                details.add(String.format("Payment #%d (%s): Paid Rs.%s via %s",
+                        settled.getId(),
+                        settled.getFarmer().getFullName(),
+                        settled.getAmount(),
+                        settled.getPaymentMethod()));
+            } catch (Exception e) {
+                failedCount++;
+                details.add(String.format("Payment #%d: Failed - %s", paymentId, e.getMessage()));
+            }
+        }
+
+        return BatchMarkPaidResponse.builder()
+                .totalProcessed(paymentIds.size())
+                .successCount(successCount)
+                .failedCount(failedCount)
+                .paidPaymentIds(paidPaymentIds)
+                .details(details)
+                .build();
     }
 
     @Override

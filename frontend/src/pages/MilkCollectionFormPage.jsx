@@ -5,6 +5,7 @@ import ErrorState from "../components/ui/ErrorState";
 import FarmerSelect from "../components/ui/FarmerSelect";
 import { getErrorMessage } from "../utils/errorMessage";
 import { getOperationalRecordDateWindow } from "../utils/recordDateWindow";
+import { todayISO } from "../utils/dateUtils";
 
 function MilkCollectionFormPage() {
   const { id } = useParams();
@@ -17,7 +18,7 @@ function MilkCollectionFormPage() {
     quantityLiters: "",
     fatPercentage: "",
     snfPercentage: "",
-    date: new Date().toISOString().split('T')[0],
+    date: todayISO(),
     shift: "MORNING"
   });
 

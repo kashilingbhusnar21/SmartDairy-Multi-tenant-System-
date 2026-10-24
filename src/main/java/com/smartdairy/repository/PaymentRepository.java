@@ -26,6 +26,8 @@ public interface  PaymentRepository extends JpaRepository<Payment, Long> {
 
     Optional<Payment> findByAdminAndMilkCollection_Id(User admin, Long milkCollectionId);
 
+    List<Payment> findByAdminAndMilkCollection_IdIn(User admin, List<Long> milkCollectionIds);
+
     Optional<Payment> findByAdminAndId(User admin, Long id);
 
     List<Payment> findByAdmin(User admin);

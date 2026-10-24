@@ -16,6 +16,7 @@ import com.smartdairy.entity.User;
 import com.smartdairy.exception.ResourceNotFoundException;
 import com.smartdairy.repository.FarmerRepository;
 import com.smartdairy.repository.MilkCollectionRepository;
+import com.smartdairy.repository.PaymentRepository;
 import com.smartdairy.service.MilkPricingService;
 import com.smartdairy.service.OperationalRecordDateValidator;
 import com.smartdairy.service.UserService;
@@ -51,6 +52,9 @@ class MilkCollectionServiceImplTest {
 
     @Mock
     private OperationalRecordDateValidator operationalRecordDateValidator;
+
+    @Mock
+    private PaymentRepository paymentRepository;
 
     @InjectMocks
     private MilkCollectionServiceImpl milkCollectionService;

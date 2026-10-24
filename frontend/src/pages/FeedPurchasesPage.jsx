@@ -15,6 +15,7 @@ import {
 } from "../services/feedPurchases";
 import { getErrorMessage } from "../utils/errorMessage";
 import { getOperationalRecordDateWindow } from "../utils/recordDateWindow";
+import { todayISO, monthStartISO, monthEndISO } from "../utils/dateUtils";
 
 const PAGE_SIZE = 10;
 
@@ -57,17 +58,10 @@ function formatCompanyName(value) {
   return option ? option.label : value;
 }
 
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function monthRangeISO() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = d.getMonth();
   return {
-    from: new Date(y, m, 1).toISOString().slice(0, 10),
-    to: new Date(y, m + 1, 0).toISOString().slice(0, 10),
+    from: monthStartISO(),
+    to: monthEndISO(),
   };
 }
 

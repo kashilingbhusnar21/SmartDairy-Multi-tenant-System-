@@ -1,5 +1,9 @@
 package com.smartdairy.service;
 
+import com.smartdairy.dto.BatchMarkPaidRequest;
+import com.smartdairy.dto.BatchMarkPaidResponse;
+import com.smartdairy.dto.BatchPaymentRequest;
+import com.smartdairy.dto.BatchPaymentResponse;
 import com.smartdairy.dto.MarkPaymentPaidRequest;
 import com.smartdairy.dto.PaymentDashboardStatsResponse;
 import com.smartdairy.dto.PaymentResponse;
@@ -12,7 +16,11 @@ public interface PaymentService {
 
     PaymentResponse generateFromMilkCollection(Long milkCollectionId);
 
+    BatchPaymentResponse generateBatchFromCollections(BatchPaymentRequest request);
+
     PaymentResponse markPaid(Long paymentId, MarkPaymentPaidRequest request);
+
+    BatchMarkPaidResponse batchMarkPaid(BatchMarkPaidRequest request);
 
     List<PaymentResponse> listPending();
 

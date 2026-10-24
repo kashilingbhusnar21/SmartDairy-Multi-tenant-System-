@@ -1,5 +1,9 @@
 package com.smartdairy.controller;
 
+import com.smartdairy.dto.BatchMarkPaidRequest;
+import com.smartdairy.dto.BatchMarkPaidResponse;
+import com.smartdairy.dto.BatchPaymentRequest;
+import com.smartdairy.dto.BatchPaymentResponse;
 import com.smartdairy.dto.MarkPaymentPaidRequest;
 import com.smartdairy.dto.PaymentDashboardStatsResponse;
 import com.smartdairy.dto.PaymentResponse;
@@ -35,6 +39,18 @@ public class PaymentController {
     @PostMapping("/from-collection/{milkCollectionId}")
     public ResponseEntity<PaymentResponse> generateFromCollection(@PathVariable Long milkCollectionId) {
         return ResponseEntity.ok(paymentService.generateFromMilkCollection(milkCollectionId));
+    }
+
+    @PostMapping("/batch-from-collections")
+    public ResponseEntity<BatchPaymentResponse> generateBatchFromCollections(
+            @Valid @RequestBody BatchPaymentRequest request) {
+        return ResponseEntity.ok(paymentService.generateBatchFromCollections(request));
+    }
+
+    @PutMapping("/batch-mark-paid")
+    public ResponseEntity<BatchMarkPaidResponse> batchMarkPaid(
+            @Valid @RequestBody BatchMarkPaidRequest request) {
+        return ResponseEntity.ok(paymentService.batchMarkPaid(request));
     }
 
     @PutMapping("/{id}/mark-paid")
