@@ -16,7 +16,9 @@ import {
   Phone,
   MapPin,
   Clock,
-  History
+  History,
+  Lock,
+  Unlock
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -39,6 +41,7 @@ export default function RapidCollectionPage() {
   const [date, setDate] = useState(todayISO());
   const [shift, setShift] = useState(getAutoShift());
   const [audioEnabled, setAudioEnabled] = useState(true);
+  const [hardwareLock, setHardwareLock] = useState(true);
 
   // Active input tracking for on-screen touch numpad
   const [activeField, setActiveField] = useState("farmerId");
@@ -289,6 +292,19 @@ export default function RapidCollectionPage() {
       return;
     }
 
+    // Duplicate prevention: check if this farmer was already entered for this shift today
+    const alreadyEntered = recentCollections.some(
+      (c) => String(c.farmerId) === String(farmerData.id) && c.shift === shift
+    );
+    if (alreadyEntered) {
+      const confirmed = window.confirm(
+        `⚠️ DUPLICATE WARNING:\nFarmer #${farmerData.id} (${farmerData.fullName}) has ALREADY recorded milk in today's ${shift} shift!\n\nDo you want to save a SECOND collection for this farmer?`
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
     setSubmitting(true);
 
     try {
@@ -351,6 +367,9 @@ export default function RapidCollectionPage() {
   const handleNumpadPress = (val) => {
     if (audioEnabled) playKeyClick();
 
+    // In Hardware Lock mode, user can ONLY type into Farmer ID!
+    const effectiveField = hardwareLock ? "farmerId" : activeField;
+
     const setterMap = {
       farmerId: (v) => setFarmerId(v),
       quantityLiters: (v) => setQuantityLiters(v),
@@ -365,8 +384,8 @@ export default function RapidCollectionPage() {
       snfPercentage: snfPercentage
     };
 
-    const currentVal = getterMap[activeField] || "";
-    const update = setterMap[activeField];
+    const currentVal = getterMap[effectiveField] || "";
+    const update = setterMap[effectiveField];
 
     if (!update) return;
 
@@ -375,24 +394,33 @@ export default function RapidCollectionPage() {
     } else if (val === "CLEAR") {
       update("");
     } else if (val === "ENTER") {
-      if (activeField === "farmerId") {
+      if (effectiveField === "farmerId") {
         performFarmerLookup(farmerId).then((ok) => {
-          if (ok && qtyRef.current) {
-            qtyRef.current.focus();
-            setActiveField("quantityLiters");
+          if (ok) {
+            if (!hardwareLock && qtyRef.current) {
+              qtyRef.current.focus();
+              setActiveField("quantityLiters");
+            } else if (quantityLiters && fatPercentage && snfPercentage) {
+              handleSubmit();
+            } else {
+              toast("Farmer locked. Waiting for readings from Ekomilk / Scale...", {
+                icon: "⏳",
+                duration: 2500
+              });
+            }
           }
         });
-      } else if (activeField === "quantityLiters") {
+      } else if (effectiveField === "quantityLiters") {
         if (fatRef.current) {
           fatRef.current.focus();
           setActiveField("fatPercentage");
         }
-      } else if (activeField === "fatPercentage") {
+      } else if (effectiveField === "fatPercentage") {
         if (snfRef.current) {
           snfRef.current.focus();
           setActiveField("snfPercentage");
         }
-      } else if (activeField === "snfPercentage") {
+      } else if (effectiveField === "snfPercentage") {
         handleSubmit();
       }
     } else {
@@ -495,6 +523,39 @@ export default function RapidCollectionPage() {
             title={audioEnabled ? "Sound Beep: ON" : "Sound Beep: OFF"}
           >
             {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </button>
+
+          {/* Hardware Lock Toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              const next = !hardwareLock;
+              setHardwareLock(next);
+              if (next) {
+                setActiveField("farmerId");
+                toast.success("🔒 Hardware Lock ON: Manual typing disabled. Readings stream directly from Ekomilk / Scale.", {
+                  duration: 3000
+                });
+              } else {
+                toast("🔓 Manual Override ON: You can now type Weight, FAT & SNF manually.", {
+                  icon: "⚠️",
+                  duration: 3000
+                });
+              }
+            }}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
+              hardwareLock
+                ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/20"
+                : "bg-amber-500/10 text-amber-300 border-amber-500/40 hover:bg-amber-500/20"
+            }`}
+            title={
+              hardwareLock
+                ? "Tamper-Proof Hardware Lock is ON. Readings only accepted from Ekomilk/Scale."
+                : "Manual Override is ON. Operator can type values manually."
+            }
+          >
+            {hardwareLock ? <Lock className="w-3.5 h-3.5 text-emerald-400" /> : <Unlock className="w-3.5 h-3.5 text-amber-400" />}
+            <span>{hardwareLock ? "Hardware Lock: ON" : "Manual Override"}</span>
           </button>
 
           {/* Web Serial Hardware Connection */}
@@ -654,18 +715,38 @@ export default function RapidCollectionPage() {
                     <Scale className="w-3 h-3 text-cyan-400" />
                     2. Weight (L)
                   </span>
-                  <span className="text-[10px] text-cyan-400 font-mono">Scale</span>
+                  {hardwareLock ? (
+                    <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-0.5">
+                      <Lock className="w-2.5 h-2.5" /> Scale Auto
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-amber-400 font-mono flex items-center gap-0.5">
+                      <Unlock className="w-2.5 h-2.5" /> Manual
+                    </span>
+                  )}
                 </label>
                 <input
                   ref={qtyRef}
                   type="number"
                   step="0.01"
-                  placeholder="0.00"
+                  placeholder={hardwareLock ? "Auto Scale" : "0.00"}
                   value={quantityLiters}
-                  onFocus={() => setActiveField("quantityLiters")}
+                  readOnly={hardwareLock}
+                  onFocus={() => {
+                    if (hardwareLock) {
+                      toast("🔒 Weight is automated from Weighing Scale. Toggle 'Manual Override' to edit.", {
+                        id: "hw-weight",
+                        duration: 2000
+                      });
+                    } else {
+                      setActiveField("quantityLiters");
+                    }
+                  }}
                   onChange={(e) => setQuantityLiters(e.target.value)}
                   onKeyDown={handleQtyKeyDown}
-                  className="w-full bg-transparent text-2xl font-black text-white focus:outline-none placeholder-slate-600 font-mono"
+                  className={`w-full bg-transparent text-2xl font-black text-white focus:outline-none placeholder-slate-600 font-mono ${
+                    hardwareLock ? "cursor-not-allowed select-none opacity-90" : ""
+                  }`}
                 />
               </div>
 
@@ -676,18 +757,38 @@ export default function RapidCollectionPage() {
                     <Activity className="w-3 h-3 text-amber-400" />
                     3. FAT (%)
                   </span>
-                  <span className="text-[10px] text-amber-400 font-mono">Ekomilk</span>
+                  {hardwareLock ? (
+                    <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-0.5">
+                      <Lock className="w-2.5 h-2.5" /> Ekomilk Auto
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-amber-400 font-mono flex items-center gap-0.5">
+                      <Unlock className="w-2.5 h-2.5" /> Manual
+                    </span>
+                  )}
                 </label>
                 <input
                   ref={fatRef}
                   type="number"
                   step="0.01"
-                  placeholder="0.00"
+                  placeholder={hardwareLock ? "Auto Ekomilk" : "0.00"}
                   value={fatPercentage}
-                  onFocus={() => setActiveField("fatPercentage")}
+                  readOnly={hardwareLock}
+                  onFocus={() => {
+                    if (hardwareLock) {
+                      toast("🔒 FAT is automated from Ekomilk. Toggle 'Manual Override' to edit.", {
+                        id: "hw-fat",
+                        duration: 2000
+                      });
+                    } else {
+                      setActiveField("fatPercentage");
+                    }
+                  }}
                   onChange={(e) => setFatPercentage(e.target.value)}
                   onKeyDown={handleFatKeyDown}
-                  className="w-full bg-transparent text-2xl font-black text-white focus:outline-none placeholder-slate-600 font-mono"
+                  className={`w-full bg-transparent text-2xl font-black text-white focus:outline-none placeholder-slate-600 font-mono ${
+                    hardwareLock ? "cursor-not-allowed select-none opacity-90" : ""
+                  }`}
                 />
               </div>
 
@@ -698,18 +799,38 @@ export default function RapidCollectionPage() {
                     <Sparkles className="w-3 h-3 text-purple-400" />
                     4. SNF (%)
                   </span>
-                  <span className="text-[10px] text-purple-400 font-mono">Ekomilk</span>
+                  {hardwareLock ? (
+                    <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-0.5">
+                      <Lock className="w-2.5 h-2.5" /> Ekomilk Auto
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-amber-400 font-mono flex items-center gap-0.5">
+                      <Unlock className="w-2.5 h-2.5" /> Manual
+                    </span>
+                  )}
                 </label>
                 <input
                   ref={snfRef}
                   type="number"
                   step="0.01"
-                  placeholder="0.00"
+                  placeholder={hardwareLock ? "Auto Ekomilk" : "0.00"}
                   value={snfPercentage}
-                  onFocus={() => setActiveField("snfPercentage")}
+                  readOnly={hardwareLock}
+                  onFocus={() => {
+                    if (hardwareLock) {
+                      toast("🔒 SNF is automated from Ekomilk. Toggle 'Manual Override' to edit.", {
+                        id: "hw-snf",
+                        duration: 2000
+                      });
+                    } else {
+                      setActiveField("snfPercentage");
+                    }
+                  }}
                   onChange={(e) => setSnfPercentage(e.target.value)}
                   onKeyDown={handleSnfKeyDown}
-                  className="w-full bg-transparent text-2xl font-black text-white focus:outline-none placeholder-slate-600 font-mono"
+                  className={`w-full bg-transparent text-2xl font-black text-white focus:outline-none placeholder-slate-600 font-mono ${
+                    hardwareLock ? "cursor-not-allowed select-none opacity-90" : ""
+                  }`}
                 />
               </div>
             </div>
@@ -752,8 +873,8 @@ export default function RapidCollectionPage() {
 
               <button
                 type="submit"
-                disabled={submitting}
-                className="col-span-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black py-3.5 px-6 rounded-xl shadow-lg shadow-emerald-500/25 transition-all text-base sm:text-lg flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                disabled={submitting || !farmerData || !quantityLiters || !fatPercentage || !snfPercentage}
+                className="col-span-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black py-3.5 px-6 rounded-xl shadow-lg shadow-emerald-500/25 transition-all text-base sm:text-lg flex items-center justify-center gap-2 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale"
               >
                 {submitting ? (
                   <>
@@ -817,7 +938,9 @@ export default function RapidCollectionPage() {
               <span className="font-bold uppercase tracking-wider text-slate-400">
                 Touch Keypad:{" "}
                 <span className="text-emerald-400 font-mono">
-                  {activeField === "farmerId"
+                  {hardwareLock
+                    ? "Farmer ID (Hardware Auto)"
+                    : activeField === "farmerId"
                     ? "Farmer ID"
                     : activeField === "quantityLiters"
                     ? "Weight (L)"
