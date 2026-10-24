@@ -18,7 +18,9 @@ import {
   Clock,
   History,
   Lock,
-  Unlock
+  Unlock,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -42,6 +44,21 @@ export default function RapidCollectionPage() {
   const [shift, setShift] = useState(getAutoShift());
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [hardwareLock, setHardwareLock] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+    }
+  };
+
+  useEffect(() => {
+    const handleFsChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", handleFsChange);
+    return () => document.removeEventListener("fullscreenchange", handleFsChange);
+  }, []);
 
   // Active input tracking for on-screen touch numpad
   const [activeField, setActiveField] = useState("farmerId");
@@ -470,37 +487,37 @@ export default function RapidCollectionPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 p-3 sm:p-6 font-sans">
+    <div className="-m-6 h-[calc(100vh-80px)] overflow-y-auto bg-slate-900 text-slate-100 p-3 sm:p-5 font-sans scrollbar-thin">
       <Toaster position="top-right" />
 
       {/* TOP BAR: Shift, Date, Hardware Status */}
-      <header className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4 pb-4 mb-6 border-b border-slate-800">
+      <header className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 pb-3 mb-4 border-b border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-            <Zap className="w-6 h-6 text-slate-950 font-bold" />
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-md shadow-emerald-500/20">
+            <Zap className="w-5 h-5 text-slate-950 font-bold" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+              <h1 className="text-lg sm:text-xl font-black tracking-tight text-white leading-tight">
                 DairyAI Rapid POS
               </h1>
-              <span className="px-2 py-0.5 text-xs font-semibold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full">
+              <span className="px-2 py-0.5 text-[10px] font-semibold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full">
                 Hardware Ready
               </span>
             </div>
-            <p className="text-xs text-slate-400">
-              High-Speed RS-232 Milk Intake System &bull; Sub-5s Intake Loop
+            <p className="text-[11px] text-slate-400">
+              High-Speed RS-232 Milk Intake &bull; Sub-5s Intake Loop
             </p>
           </div>
         </div>
 
-        {/* CONTROLS: Shift Pill, Hardware Connection, Audio Toggle */}
-        <div className="flex items-center flex-wrap gap-2.5">
+        {/* CONTROLS: Shift Pill, Hardware Connection, Audio, Fullscreen */}
+        <div className="flex items-center flex-wrap gap-2">
           {/* Shift Toggle */}
           <button
             type="button"
             onClick={() => setShift((prev) => (prev === "MORNING" ? "EVENING" : "MORNING"))}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
               shift === "MORNING"
                 ? "bg-amber-500/10 text-amber-300 border-amber-500/40 hover:bg-amber-500/20"
                 : "bg-indigo-500/10 text-indigo-300 border-indigo-500/40 hover:bg-indigo-500/20"
@@ -508,7 +525,6 @@ export default function RapidCollectionPage() {
             title="Click to toggle Shift"
           >
             {formatShiftLabel(shift)}
-            <span className="text-[10px] opacity-75 font-normal">(Click to switch)</span>
           </button>
 
           {/* Date Picker */}
@@ -523,7 +539,7 @@ export default function RapidCollectionPage() {
           <button
             type="button"
             onClick={() => setAudioEnabled(!audioEnabled)}
-            className={`p-2 rounded-lg border text-xs transition-colors ${
+            className={`p-1.5 rounded-lg border text-xs transition-colors ${
               audioEnabled
                 ? "bg-slate-800 border-slate-700 text-emerald-400 hover:bg-slate-700"
                 : "bg-slate-800 border-slate-700 text-slate-500 hover:bg-slate-700"
@@ -568,10 +584,10 @@ export default function RapidCollectionPage() {
 
           {/* Web Serial Hardware Connection */}
           {serial.isConnected ? (
-            <div className="flex items-center gap-2 bg-emerald-950/60 border border-emerald-500/50 rounded-lg px-3 py-1.5">
-              <span className="relative flex h-2.5 w-2.5">
+            <div className="flex items-center gap-2 bg-emerald-950/60 border border-emerald-500/50 rounded-lg px-2.5 py-1.5">
+              <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
               <span className="text-xs font-semibold text-emerald-300">
                 {serial.portName || "Ekomilk Online"}
@@ -579,7 +595,7 @@ export default function RapidCollectionPage() {
               <button
                 type="button"
                 onClick={serial.disconnect}
-                className="text-[11px] text-slate-400 hover:text-red-400 underline ml-1"
+                className="text-[10px] text-slate-400 hover:text-red-400 underline ml-1"
               >
                 Disconnect
               </button>
@@ -588,12 +604,22 @@ export default function RapidCollectionPage() {
             <button
               type="button"
               onClick={() => serial.connect({ baudRate: 9600 })}
-              className="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+              className="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
             >
               <Usb className="w-3.5 h-3.5 text-cyan-400" />
               <span>Connect Serial Port</span>
             </button>
           )}
+
+          {/* Fullscreen Button */}
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            className="p-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 text-xs transition-colors"
+            title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen POS Mode"}
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4 text-amber-400" /> : <Maximize2 className="w-4 h-4 text-slate-400" />}
+          </button>
 
           {/* Quick Simulated Sample Injection */}
           <div className="hidden sm:flex items-center gap-1 bg-slate-800/80 p-1 rounded-lg border border-slate-700/80">
@@ -619,12 +645,12 @@ export default function RapidCollectionPage() {
       </header>
 
       {/* MAIN POS GRID */}
-      <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-4 pb-6">
         {/* LEFT / CENTER: PRIMARY RAPID INPUT WORKFLOW (7 COLS) */}
-        <section className="lg:col-span-7 space-y-5">
+        <section className="lg:col-span-7 space-y-3">
           <form
             onSubmit={handleSubmit}
-            className={`bg-slate-800/90 border rounded-2xl p-5 sm:p-7 shadow-2xl backdrop-blur-sm transition-all duration-300 ${
+            className={`bg-slate-800/95 border rounded-xl p-3.5 sm:p-4 shadow-xl backdrop-blur-sm transition-all duration-300 ${
               submitSuccessFlash
                 ? "border-emerald-500 shadow-emerald-500/20 ring-4 ring-emerald-500/30"
                 : hardwareFlash
@@ -633,13 +659,13 @@ export default function RapidCollectionPage() {
             }`}
           >
             {/* STEP 1: FARMER NUMERIC IDENTIFIER */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-bold tracking-wider text-slate-300 uppercase flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-emerald-400" />
                   1. Farmer ID / Number
                 </label>
-                <span className="text-[11px] text-slate-400">Press [ENTER] to lookup</span>
+                <span className="text-[11px] text-slate-400 font-mono">Press [ENTER] to save</span>
               </div>
 
               <div className="relative">
@@ -668,7 +694,7 @@ export default function RapidCollectionPage() {
                     }
                     handleFarmerIdKeyDown(e);
                   }}
-                  className={`w-full bg-slate-900 border-2 rounded-xl px-4 py-3 text-3xl font-black tracking-wider text-emerald-400 placeholder-slate-600 focus:outline-none transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                  className={`w-full bg-slate-900 border-2 rounded-xl px-4 py-2.5 text-2xl sm:text-3xl font-black tracking-wider text-emerald-400 placeholder-slate-600 focus:outline-none transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                     farmerError
                       ? "border-red-500 ring-2 ring-red-500/30"
                       : farmerData
@@ -679,23 +705,23 @@ export default function RapidCollectionPage() {
                 />
                 {farmerLoading && (
                   <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                    <RefreshCw className="w-6 h-6 text-emerald-400 animate-spin" />
+                    <RefreshCw className="w-5 h-5 text-emerald-400 animate-spin" />
                   </div>
                 )}
               </div>
 
               {/* Farmer Lookup Result Card */}
               {farmerData && (
-                <div className="mt-2.5 p-3.5 bg-emerald-950/40 border border-emerald-500/40 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-1">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center font-bold text-emerald-300">
+                <div className="mt-2 p-2.5 bg-emerald-950/40 border border-emerald-500/40 rounded-lg flex items-center justify-between animate-in fade-in slide-in-from-top-1">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center font-bold text-emerald-300 text-sm">
                       {farmerData.fullName?.charAt(0) || "F"}
                     </div>
                     <div>
-                      <h3 className="text-base font-extrabold text-white leading-tight">
+                      <h3 className="text-sm font-extrabold text-white leading-tight">
                         {farmerData.fullName}
                       </h3>
-                      <div className="flex items-center gap-3 text-xs text-slate-300 mt-0.5">
+                      <div className="flex items-center gap-2.5 text-[11px] text-slate-300 mt-0.5">
                         <span className="flex items-center gap-1">
                           <MapPin className="w-3 h-3 text-emerald-400" />
                           {farmerData.village || "Registered"}
@@ -709,14 +735,14 @@ export default function RapidCollectionPage() {
                       </div>
                     </div>
                   </div>
-                  <span className="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-full text-xs font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Active
+                  <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-full text-[11px] font-bold flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Active
                   </span>
                 </div>
               )}
 
               {farmerError && (
-                <div className="mt-2 p-2.5 bg-red-950/40 border border-red-500/40 rounded-xl text-xs text-red-300 flex items-center gap-2">
+                <div className="mt-2 p-2 bg-red-950/40 border border-red-500/40 rounded-lg text-xs text-red-300 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
                   <span>{farmerError}</span>
                 </div>
@@ -724,10 +750,10 @@ export default function RapidCollectionPage() {
             </div>
 
             {/* STEP 2 & 3: HARDWARE INPUTS (WEIGHT, FAT, SNF) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
               {/* QUANTITY / WEIGHT */}
-              <div className="bg-slate-900/80 p-3.5 rounded-xl border border-slate-700 focus-within:border-emerald-500 transition-all">
-                <label className="text-[11px] font-bold tracking-wider text-slate-400 uppercase flex items-center justify-between mb-1.5">
+              <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-700 focus-within:border-emerald-500 transition-all">
+                <label className="text-[10px] font-bold tracking-wider text-slate-400 uppercase flex items-center justify-between mb-1">
                   <span className="flex items-center gap-1">
                     <Scale className="w-3 h-3 text-cyan-400" />
                     2. Weight (L)
@@ -766,15 +792,15 @@ export default function RapidCollectionPage() {
                     if (e.key === "ArrowUp" || e.key === "ArrowDown") e.preventDefault();
                     handleQtyKeyDown(e);
                   }}
-                  className={`w-full bg-transparent text-2xl font-black text-white focus:outline-none placeholder-slate-600 font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                  className={`w-full bg-transparent text-xl sm:text-2xl font-black text-white focus:outline-none placeholder-slate-600 font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                     hardwareLock ? "cursor-not-allowed select-none opacity-90" : ""
                   }`}
                 />
               </div>
 
               {/* FAT PERCENTAGE */}
-              <div className="bg-slate-900/80 p-3.5 rounded-xl border border-slate-700 focus-within:border-emerald-500 transition-all">
-                <label className="text-[11px] font-bold tracking-wider text-slate-400 uppercase flex items-center justify-between mb-1.5">
+              <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-700 focus-within:border-emerald-500 transition-all">
+                <label className="text-[10px] font-bold tracking-wider text-slate-400 uppercase flex items-center justify-between mb-1">
                   <span className="flex items-center gap-1">
                     <Activity className="w-3 h-3 text-amber-400" />
                     3. FAT (%)
@@ -813,15 +839,15 @@ export default function RapidCollectionPage() {
                     if (e.key === "ArrowUp" || e.key === "ArrowDown") e.preventDefault();
                     handleFatKeyDown(e);
                   }}
-                  className={`w-full bg-transparent text-2xl font-black text-white focus:outline-none placeholder-slate-600 font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                  className={`w-full bg-transparent text-xl sm:text-2xl font-black text-white focus:outline-none placeholder-slate-600 font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                     hardwareLock ? "cursor-not-allowed select-none opacity-90" : ""
                   }`}
                 />
               </div>
 
               {/* SNF PERCENTAGE */}
-              <div className="bg-slate-900/80 p-3.5 rounded-xl border border-slate-700 focus-within:border-emerald-500 transition-all">
-                <label className="text-[11px] font-bold tracking-wider text-slate-400 uppercase flex items-center justify-between mb-1.5">
+              <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-700 focus-within:border-emerald-500 transition-all">
+                <label className="text-[10px] font-bold tracking-wider text-slate-400 uppercase flex items-center justify-between mb-1">
                   <span className="flex items-center gap-1">
                     <Sparkles className="w-3 h-3 text-purple-400" />
                     4. SNF (%)
@@ -860,7 +886,7 @@ export default function RapidCollectionPage() {
                     if (e.key === "ArrowUp" || e.key === "ArrowDown") e.preventDefault();
                     handleSnfKeyDown(e);
                   }}
-                  className={`w-full bg-transparent text-2xl font-black text-white focus:outline-none placeholder-slate-600 font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                  className={`w-full bg-transparent text-xl sm:text-2xl font-black text-white focus:outline-none placeholder-slate-600 font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                     hardwareLock ? "cursor-not-allowed select-none opacity-90" : ""
                   }`}
                 />
@@ -868,25 +894,25 @@ export default function RapidCollectionPage() {
             </div>
 
             {/* LIVE PRICE & TOTAL CALCULATION CARD */}
-            <div className="bg-gradient-to-r from-emerald-950/70 via-slate-900 to-teal-950/70 border border-emerald-500/40 rounded-xl p-4 mb-6 flex flex-wrap items-center justify-between gap-4 shadow-lg">
+            <div className="bg-gradient-to-r from-emerald-950/70 via-slate-900 to-teal-950/70 border border-emerald-500/40 rounded-lg p-3 mb-3 flex flex-wrap items-center justify-between gap-3 shadow-md">
               <div>
-                <span className="text-[11px] font-bold tracking-wider uppercase text-emerald-400 block mb-0.5">
+                <span className="text-[10px] font-bold tracking-wider uppercase text-emerald-400 block">
                   Calculated Milk Rate
                 </span>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-white font-mono">
+                <div className="flex items-baseline gap-1 mt-0.5">
+                  <span className="text-2xl font-black text-white font-mono">
                     {ratePerLiter ? `₹${parseFloat(ratePerLiter).toFixed(2)}` : "--"}
                   </span>
-                  <span className="text-xs text-slate-400 font-medium">/ Liter</span>
+                  <span className="text-[11px] text-slate-400 font-medium">/ Liter</span>
                 </div>
               </div>
 
               <div className="text-right">
-                <span className="text-[11px] font-bold tracking-wider uppercase text-teal-400 block mb-0.5">
+                <span className="text-[10px] font-bold tracking-wider uppercase text-teal-400 block">
                   Total Payable Amount
                 </span>
-                <div className="flex items-baseline justify-end gap-1">
-                  <span className="text-4xl font-black text-emerald-400 font-mono tracking-tight">
+                <div className="flex items-baseline justify-end gap-1 mt-0.5">
+                  <span className="text-3xl font-black text-emerald-400 font-mono tracking-tight">
                     {totalAmount ? `₹${parseFloat(totalAmount).toFixed(2)}` : "₹0.00"}
                   </span>
                 </div>
@@ -894,11 +920,11 @@ export default function RapidCollectionPage() {
             </div>
 
             {/* ACTION BUTTONS: SAVE & RESET */}
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-4 gap-2.5">
               <button
                 type="button"
                 onClick={handleReset}
-                className="col-span-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3.5 px-3 rounded-xl border border-slate-600 transition-all text-xs sm:text-sm active:scale-95"
+                className="col-span-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 px-3 rounded-lg border border-slate-600 transition-all text-xs active:scale-95"
               >
                 Clear (ESC)
               </button>
@@ -907,17 +933,17 @@ export default function RapidCollectionPage() {
                 ref={submitBtnRef}
                 type="submit"
                 disabled={submitting || !farmerData || !quantityLiters || !fatPercentage || !snfPercentage}
-                className="col-span-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black py-3.5 px-6 rounded-xl shadow-lg shadow-emerald-500/25 transition-all text-base sm:text-lg flex items-center justify-center gap-2 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale focus:outline-none focus:ring-4 focus:ring-emerald-400/70"
+                className="col-span-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black py-2.5 px-5 rounded-lg shadow-md shadow-emerald-500/25 transition-all text-base flex items-center justify-center gap-2 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale focus:outline-none focus:ring-4 focus:ring-emerald-400/70"
               >
                 {submitting ? (
                   <>
-                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    <RefreshCw className="w-4 h-4 animate-spin" />
                     <span>Saving Intake...</span>
                   </>
                 ) : (
                   <>
                     <span>RECORD INTAKE</span>
-                    <span className="px-2 py-0.5 bg-slate-950/20 text-slate-950 text-xs rounded font-mono font-bold">
+                    <span className="px-1.5 py-0.5 bg-slate-950/20 text-slate-950 text-[11px] rounded font-mono font-bold">
                       ⏎ ENTER
                     </span>
                   </>
@@ -927,10 +953,10 @@ export default function RapidCollectionPage() {
           </form>
 
           {/* SERIAL CONSOLE LOG (COLLAPSIBLE / MONITORED) */}
-          <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-xs font-mono">
-            <div className="flex items-center justify-between text-slate-400 mb-2 border-b border-slate-800 pb-1.5">
-              <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-slate-300 font-bold">
-                <Usb className="w-3.5 h-3.5 text-cyan-400" />
+          <div className="bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs font-mono">
+            <div className="flex items-center justify-between text-slate-400 mb-1.5 border-b border-slate-800 pb-1">
+              <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-slate-300 font-bold">
+                <Usb className="w-3 h-3 text-cyan-400" />
                 Hardware Serial Stream Logs
               </span>
               <div className="flex items-center gap-2">
@@ -946,7 +972,7 @@ export default function RapidCollectionPage() {
                 </button>
               </div>
             </div>
-            <div className="h-20 overflow-y-auto space-y-0.5 text-slate-400 text-[11px] scrollbar-thin">
+            <div className="h-14 overflow-y-auto space-y-0.5 text-slate-400 text-[10px] scrollbar-thin">
               {serial.rawLogs.length === 0 ? (
                 <p className="text-slate-600 italic">
                   No serial stream frames received yet. Connect your COM port or click a Ghost HW
@@ -954,7 +980,7 @@ export default function RapidCollectionPage() {
                 </p>
               ) : (
                 serial.rawLogs.map((log, idx) => (
-                  <p key={idx} className="leading-snug">
+                  <p key={idx} className="leading-tight">
                     {log}
                   </p>
                 ))
@@ -964,11 +990,11 @@ export default function RapidCollectionPage() {
         </section>
 
         {/* RIGHT: TOUCH NUMPAD + LIVE FEED (5 COLS) */}
-        <section className="lg:col-span-5 space-y-5">
+        <section className="lg:col-span-5 space-y-3">
           {/* TOUCH NUMPAD (PERFECT FOR TABLETS & MOBILES) */}
-          <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-4 shadow-xl">
-            <div className="flex items-center justify-between mb-3 text-xs text-slate-300">
-              <span className="font-bold uppercase tracking-wider text-slate-400">
+          <div className="bg-slate-800/95 border border-slate-700/80 rounded-xl p-3 shadow-md">
+            <div className="flex items-center justify-between mb-2 text-xs text-slate-300">
+              <span className="font-bold uppercase tracking-wider text-slate-400 text-[10px]">
                 Touch Keypad:{" "}
                 <span className="text-emerald-400 font-mono">
                   {hardwareLock
@@ -982,16 +1008,16 @@ export default function RapidCollectionPage() {
                     : "SNF %"}
                 </span>
               </span>
-              <span className="text-[10px] text-slate-500">10-Key Rapid POS</span>
+              <span className="text-[10px] text-slate-500 font-mono">10-Key Rapid POS</span>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1.5">
               {["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "BACKSPACE"].map((key) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => handleNumpadPress(key)}
-                  className={`h-12 rounded-xl text-lg font-black transition-all active:scale-95 shadow-sm border ${
+                  className={`h-9 rounded-lg text-base font-black transition-all active:scale-95 shadow-sm border ${
                     key === "BACKSPACE"
                       ? "bg-slate-700/80 text-rose-300 border-slate-600 hover:bg-slate-700"
                       : "bg-slate-900/90 text-white border-slate-700/80 hover:bg-slate-800"
@@ -1004,7 +1030,7 @@ export default function RapidCollectionPage() {
               <button
                 type="button"
                 onClick={() => handleNumpadPress("CLEAR")}
-                className="h-12 rounded-xl text-xs font-black bg-slate-700/50 text-slate-400 border border-slate-600 hover:bg-slate-700 active:scale-95"
+                className="h-9 rounded-lg text-[10px] font-black bg-slate-700/50 text-slate-400 border border-slate-600 hover:bg-slate-700 active:scale-95"
               >
                 CLEAR
               </button>
@@ -1012,71 +1038,71 @@ export default function RapidCollectionPage() {
               <button
                 type="button"
                 onClick={() => handleNumpadPress("ENTER")}
-                className="col-span-2 h-12 rounded-xl text-sm font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 border border-emerald-400 shadow-md shadow-emerald-500/20 active:scale-95 flex items-center justify-center gap-1.5"
+                className="col-span-2 h-9 rounded-lg text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 border border-emerald-400 shadow-md shadow-emerald-500/20 active:scale-95 flex items-center justify-center gap-1"
               >
                 <span>NEXT / ENTER</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
 
           {/* RUNNING SESSION SUMMARY */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-slate-800/80 border border-slate-700/80 rounded-xl p-3">
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="bg-slate-800/90 border border-slate-700/80 rounded-lg p-2.5">
               <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
                 Shift Total Milk
               </span>
-              <p className="text-xl font-black text-white font-mono mt-0.5">
+              <p className="text-lg font-black text-white font-mono mt-0.5">
                 {sessionTotalLiters.toFixed(2)}{" "}
                 <span className="text-xs text-slate-400 font-normal">L</span>
               </p>
             </div>
-            <div className="bg-slate-800/80 border border-slate-700/80 rounded-xl p-3">
+            <div className="bg-slate-800/90 border border-slate-700/80 rounded-lg p-2.5">
               <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
                 Shift Total Value
               </span>
-              <p className="text-xl font-black text-emerald-400 font-mono mt-0.5">
+              <p className="text-lg font-black text-emerald-400 font-mono mt-0.5">
                 ₹{sessionTotalAmount.toFixed(2)}
               </p>
             </div>
           </div>
 
           {/* RECENT COLLECTIONS FEED */}
-          <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-4 shadow-xl">
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/80">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                <History className="w-3.5 h-3.5 text-emerald-400" />
+          <div className="bg-slate-800/95 border border-slate-700/80 rounded-xl p-3 shadow-md">
+            <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-700/80">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <History className="w-3 h-3 text-emerald-400" />
                 Recent Intakes (Today)
               </h3>
               <Link
                 to="/milk-collections"
-                className="text-[11px] text-emerald-400 hover:underline flex items-center gap-1"
+                className="text-[10px] text-emerald-400 hover:underline flex items-center gap-1"
               >
                 View All
               </Link>
             </div>
 
-            <div className="space-y-2 max-h-64 overflow-y-auto pr-1 scrollbar-thin">
+            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
               {recentCollections.length === 0 ? (
-                <p className="text-xs text-slate-500 italic text-center py-4">
+                <p className="text-xs text-slate-500 italic text-center py-3">
                   No records yet for this session.
                 </p>
               ) : (
                 recentCollections.map((col) => (
                   <div
                     key={col.id}
-                    className="p-2.5 bg-slate-900/70 border border-slate-700/60 rounded-xl flex items-center justify-between hover:border-slate-600 transition-colors"
+                    className="p-2 bg-slate-900/70 border border-slate-700/60 rounded-lg flex items-center justify-between hover:border-slate-600 transition-colors"
                   >
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-extrabold text-sm text-white">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-extrabold text-xs text-white">
                           {col.farmerName || `Farmer #${col.farmerId}`}
                         </span>
-                        <span className="text-[10px] px-1.5 py-0.2 bg-slate-800 border border-slate-700 rounded text-slate-400 font-mono">
+                        <span className="text-[10px] px-1 py-0.1 bg-slate-800 border border-slate-700 rounded text-slate-400 font-mono">
                           #{col.farmerId}
                         </span>
                       </div>
-                      <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5 font-mono">
+                      <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5 font-mono">
                         <span>{parseFloat(col.quantityLiters).toFixed(2)} L</span>
                         <span>&bull;</span>
                         <span>FAT: {parseFloat(col.fatPercentage).toFixed(1)}%</span>
@@ -1086,7 +1112,7 @@ export default function RapidCollectionPage() {
                     </div>
 
                     <div className="text-right">
-                      <span className="text-sm font-black text-emerald-400 font-mono block">
+                      <span className="text-xs font-black text-emerald-400 font-mono block">
                         ₹{parseFloat(col.totalAmount || 0).toFixed(2)}
                       </span>
                       <span className="text-[10px] text-slate-500 font-mono">
