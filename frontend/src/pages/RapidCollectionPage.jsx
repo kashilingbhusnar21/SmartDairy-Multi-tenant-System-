@@ -25,6 +25,7 @@ import { lookupFarmerById } from "../services/farmers";
 import { calculateMilkRate } from "../services/pricingSettings";
 import { todayISO } from "../utils/dateUtils";
 import { getAutoShift, formatShiftLabel } from "../utils/shiftUtils";
+import { getErrorMessage } from "../utils/errorMessage";
 import {
   playSuccessChime,
   playErrorBuzz,
@@ -274,15 +275,15 @@ export default function RapidCollectionPage() {
       return;
     }
 
-    if (isNaN(fat) || fat < 0 || fat > 15) {
-      toast.error("Enter valid FAT % (0 - 15)");
+    if (isNaN(fat) || fat < 2.5 || fat > 9.0) {
+      toast.error("FAT % must be between 2.5 and 9.0");
       if (audioEnabled) playErrorBuzz();
       if (fatRef.current) fatRef.current.focus();
       return;
     }
 
-    if (isNaN(snf) || snf < 0 || snf > 20) {
-      toast.error("Enter valid SNF % (0 - 20)");
+    if (isNaN(snf) || snf < 7.5 || snf > 9.0) {
+      toast.error("SNF % must be between 7.5 and 9.0");
       if (audioEnabled) playErrorBuzz();
       if (snfRef.current) snfRef.current.focus();
       return;
@@ -338,7 +339,7 @@ export default function RapidCollectionPage() {
       // Sub-100ms reset for rapid operation
       handleReset();
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Failed to save collection";
+      const msg = getErrorMessage(err, "Failed to save collection");
       toast.error(msg);
       if (audioEnabled) playErrorBuzz();
     } finally {
@@ -414,10 +415,10 @@ export default function RapidCollectionPage() {
     } else if (type === "buffalo") {
       serial.injectSimulatedData({
         fat: 6.8,
-        snf: 9.3,
+        snf: 8.9,
         clr: 30.5,
         weight: (12.0 + Math.random() * 6).toFixed(2),
-        raw: "FAT=06.80  SNF=09.30  CLR=30.50  WT=14.80"
+        raw: "FAT=06.80  SNF=08.90  CLR=30.50  WT=14.80"
       });
     }
   };

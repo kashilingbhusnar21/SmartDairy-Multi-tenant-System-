@@ -78,7 +78,7 @@ def main():
 
     print("\nSelect an action:")
     print("  [1] Send Standard Cow Milk    (FAT: 4.10% | SNF: 8.60% | WT: 10.50 L)")
-    print("  [2] Send Rich Buffalo Milk   (FAT: 6.80% | SNF: 9.20% | WT: 14.50 L)")
+    print("  [2] Send Rich Buffalo Milk   (FAT: 6.80% | SNF: 8.90% | WT: 14.50 L)")
     print("  [3] Send Low-Fat Cow Sample  (FAT: 3.50% | SNF: 8.40% | WT:  8.00 L)")
     print("  [4] Send Custom Sample       (Input your own values)")
     print("  [5] Auto-Stress Loop         (Sends realistic random sample every 3 seconds)")
@@ -95,7 +95,7 @@ def main():
                 payload = generate_payload(fat=4.10, snf=8.60, clr=28.0, weight=round(random.uniform(8.0, 15.0), 2))
                 send_frame(ser, payload)
             elif choice == "2":
-                payload = generate_payload(fat=6.80, snf=9.20, clr=30.5, weight=round(random.uniform(10.0, 20.0), 2))
+                payload = generate_payload(fat=6.80, snf=8.90, clr=30.5, weight=round(random.uniform(10.0, 20.0), 2))
                 send_frame(ser, payload)
             elif choice == "3":
                 payload = generate_payload(fat=3.50, snf=8.40, clr=27.5, weight=round(random.uniform(6.0, 12.0), 2))
@@ -119,7 +119,7 @@ def main():
                             w = round(random.uniform(7.5, 16.0), 2)
                         else:
                             f = round(random.uniform(6.2, 7.5), 2)
-                            s = round(random.uniform(8.9, 9.6), 2)
+                            s = round(random.uniform(8.5, 8.95), 2)
                             w = round(random.uniform(10.0, 22.0), 2)
                         
                         payload = generate_payload(fat=f, snf=s, clr=29.0, weight=w)
