@@ -20,3 +20,8 @@ export function monthStartISO(date = new Date()) {
 export function monthEndISO(date = new Date()) {
   return toLocalDateISO(new Date(date.getFullYear(), date.getMonth() + 1, 0));
 }
+
+export function formatDateTime(date = new Date()) {
+  if (!date) return "";
+  return new Date(date).toLocaleString();
+}

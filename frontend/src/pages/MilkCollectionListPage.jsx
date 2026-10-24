@@ -147,6 +147,12 @@ function MilkCollectionListPage() {
             ⚡ Batch Pay All
           </button>
           <Link
+            to="/rapid-collection"
+            className="inline-flex justify-center items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 text-sm font-bold shadow-sm"
+          >
+            ⚡ Rapid POS
+          </Link>
+          <Link
             to="/milk-collections/add"
             className="inline-flex justify-center px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700"
           >

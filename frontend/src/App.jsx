@@ -11,6 +11,7 @@ import FarmerFormPage from './pages/FarmerFormPage';
 import MilkCollectionListPage from './pages/MilkCollectionListPage';
 import MilkCollectionFormPage from './pages/MilkCollectionFormPage';
 import AdvancedMilkReportsPage from './pages/AdvancedMilkReportsPage';
+import RapidCollectionPage from './pages/RapidCollectionPage';
 import PaymentFormPage from './pages/PaymentFormPage';
 import PaymentDashboardPage from './pages/PaymentDashboardPage';
 import FeedPurchasesPage from './pages/FeedPurchasesPage';
@@ -63,6 +64,7 @@ function App() {
               <Route path="/milk-collections" element={<MilkCollectionListPage />} />
               <Route path="/milk-collections/add" element={<MilkCollectionFormPage />} />
               <Route path="/milk-collections/:id/edit" element={<MilkCollectionFormPage />} />
+              <Route path="/rapid-collection" element={<RapidCollectionPage />} />
               <Route path="/milk-reports" element={<AdvancedMilkReportsPage />} />
               <Route path="/payments" element={<PaymentDashboardPage />} />
               <Route path="/payments/add" element={<PaymentFormPage />} />

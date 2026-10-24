@@ -21,6 +21,7 @@ import {
   Stethoscope,
   Wrench,
   Store,
+  Zap,
 } from "lucide-react";
 
 const navClass = ({ isActive }) =>
@@ -102,6 +103,15 @@ function Sidebar({ onNavigate }) {
           <NavLink to="/milk-collections" className={navClass} onClick={handleNav}>
             <Milk size={18} />
             <span>Milk Collection</span>
+          </NavLink>
+          <NavLink to="/rapid-collection" className={navClass} onClick={handleNav}>
+            <Zap size={18} className="text-amber-500" />
+            <span className="flex items-center justify-between flex-1">
+              <span>Rapid POS</span>
+              <span className="text-[10px] uppercase font-black bg-amber-500/15 text-amber-700 px-1.5 py-0.5 rounded border border-amber-500/30">
+                FAST
+              </span>
+            </span>
           </NavLink>
           <NavLink to="/payments" className={navClass} onClick={handleNav}>
             <CreditCard size={18} />
