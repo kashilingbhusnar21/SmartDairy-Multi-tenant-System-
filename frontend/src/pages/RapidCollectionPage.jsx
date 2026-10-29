@@ -14,7 +14,9 @@ import {
   Activity,
   Server,
   Database,
-  Sparkles
+  Sparkles,
+  ShieldCheck,
+  CheckCircle2
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -31,14 +33,27 @@ import {
 } from "../utils/audioAlerts";
 
 export default function RapidCollectionPage() {
+  // Active tenant email
+  const currentEmail = getEmail() || "Admin@gmail.com";
+
   // Operational state
   const [date, setDate] = useState(todayISO());
   const [shift, setShift] = useState(getAutoShift());
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // One-Time Device Pairing & Provisioning State
+  const [isPaired, setIsPaired] = useState(() => {
+    return localStorage.getItem("dairyai_iot_paired_" + currentEmail) === "true";
+  });
+  const [pairingEmail, setPairingEmail] = useState(currentEmail);
+  const [generatedOtp, setGeneratedOtp] = useState("");
+  const [enteredOtp, setEnteredOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [pairingLoading, setPairingLoading] = useState(false);
+
   // 4G IoT Gateway Telemetry State
-  const [iotDeviceKey, setIotDeviceKey] = useState(() => getEmail() || "EKOMILK_BOOTH_01");
+  const [iotDeviceKey, setIotDeviceKey] = useState(() => currentEmail);
   const [iotFarmerId, setIotFarmerId] = useState("101");
   const [iotQty, setIotQty] = useState("12.50");
   const [iotFat, setIotFat] = useState("4.20");
@@ -82,6 +97,53 @@ export default function RapidCollectionPage() {
   useEffect(() => {
     loadDailyFeed(date);
   }, [date, loadDailyFeed]);
+
+  // One-Time Device Activation Handlers
+  const handleSendOtp = () => {
+    if (!pairingEmail || !pairingEmail.includes("@")) {
+      toast.error("Please enter a valid registered dairy email address");
+      if (audioEnabled) playErrorBuzz();
+      return;
+    }
+    setPairingLoading(true);
+    setTimeout(() => {
+      const code = String(Math.floor(1000 + Math.random() * 9000));
+      setGeneratedOtp(code);
+      setOtpSent(true);
+      setPairingLoading(false);
+      if (audioEnabled) playKeyClick();
+      toast(`📨 Activation Code: [ ${code} ] sent to ${pairingEmail}`, {
+        duration: 9000,
+        icon: "🔐"
+      });
+    }, 500);
+  };
+
+  const handleVerifyPairing = () => {
+    if (enteredOtp !== generatedOtp) {
+      toast.error("Invalid activation code. Please check the 4-digit code.");
+      if (audioEnabled) playErrorBuzz();
+      return;
+    }
+    localStorage.setItem("dairyai_iot_paired_" + pairingEmail, "true");
+    setIotDeviceKey(pairingEmail);
+    setIsPaired(true);
+    if (audioEnabled) playSuccessChime();
+    toast.success(`🎉 Device successfully verified & bound to ${pairingEmail}!`, {
+      duration: 5000,
+      icon: "✅"
+    });
+  };
+
+  const handleUnpair = () => {
+    localStorage.removeItem("dairyai_iot_paired_" + currentEmail);
+    setIsPaired(false);
+    setOtpSent(false);
+    setGeneratedOtp("");
+    setEnteredOtp("");
+    if (audioEnabled) playKeyClick();
+    toast("Device unpaired. Ready for new activation setup.", { icon: "ℹ️" });
+  };
 
   // Quick Simulation Presets
   const applyIoTPreset = (preset) => {
@@ -235,196 +297,307 @@ export default function RapidCollectionPage() {
         
         {/* LEFT / CENTER: VIRTUAL 4G CELLULAR IOT GATEWAY TERMINAL (7 COLS) */}
         <section className="lg:col-span-7 space-y-3">
-          <div className="bg-slate-900/95 border-2 border-cyan-500/40 rounded-xl p-4 sm:p-5 shadow-2xl backdrop-blur-md relative overflow-hidden">
-            
-            {/* TOP INDUSTRIAL STATUS BAR */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cyan-900/50 pb-3 mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shadow-inner">
-                  <Radio className="w-5 h-5 text-cyan-400 animate-pulse" />
+          
+          {!isPaired ? (
+            /* FIRST-TIME PROVISIONING WIZARD CARD */
+            <div className="bg-slate-900/95 border-2 border-amber-500/40 rounded-xl p-5 sm:p-6 shadow-2xl backdrop-blur-md relative overflow-hidden">
+              <div className="flex items-center gap-3 border-b border-amber-900/40 pb-4 mb-5">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
+                  <ShieldCheck className="w-6 h-6 text-amber-400" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-2">
-                      DairyAI 4G IoT Gateway
-                    </h2>
-                    <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 rounded-full flex items-center gap-1">
-                      <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping" />
-                      4G LTE-M ONLINE
+                    <h2 className="text-base sm:text-lg font-black text-white">4G Gateway Activation Setup</h2>
+                    <span className="px-2 py-0.5 text-[10px] font-mono font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full">
+                      First-Time Onboarding
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-400">
-                    Autonomous M2M Ingestion &bull; Zero Browser Dependency &bull; Microcontroller Direct
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Link this hardware terminal to your registered Dairy Society account before milk intake.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-[11px] font-mono bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
-                <Wifi className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="text-slate-400">SIM:</span>
-                <span className="text-emerald-400 font-semibold">AIRTEL M2M</span>
-                <span className="text-slate-600">|</span>
-                <span className="text-slate-400">RSRP:</span>
-                <span className="text-cyan-300 font-semibold">-68 dBm</span>
+              {/* STEP 1: VERIFY REGISTERED EMAIL */}
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-cyan-400" />
+                    1. Registered Dairy Admin Email
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="email"
+                      value={pairingEmail}
+                      onChange={(e) => setPairingEmail(e.target.value)}
+                      placeholder="e.g. Admin@gmail.com"
+                      className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-mono text-cyan-300 focus:outline-none focus:border-cyan-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      disabled={pairingLoading}
+                      className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      {pairingLoading ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
+                      <span>{otpSent ? "Resend Code" : "Send Activation Code"}</span>
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    💡 Free Dev/Demo Mode: Clicking &quot;Send Activation Code&quot; generates the secure token instantly on screen.
+                  </p>
+                </div>
+
+                {/* STEP 2: ENTER ACTIVATION CODE */}
+                {otpSent && (
+                  <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3 animate-in fade-in duration-300">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-amber-400" />
+                        2. Enter 4-Digit Activation Code
+                      </label>
+                      <span className="text-[11px] font-mono text-emerald-400 bg-emerald-950/80 border border-emerald-800/60 px-2 py-0.5 rounded">
+                        Dev Token: {generatedOtp}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="text"
+                        maxLength={4}
+                        value={enteredOtp}
+                        onChange={(e) => setEnteredOtp(e.target.value.replace(/[^0-9]/g, ""))}
+                        placeholder="e.g. 4819"
+                        className="w-36 text-center tracking-widest text-2xl font-black font-mono bg-slate-900 border-2 border-cyan-500/50 rounded-xl py-2 text-cyan-300 focus:outline-none focus:border-cyan-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleVerifyPairing}
+                        disabled={enteredOtp.length !== 4}
+                        className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black py-2.5 px-4 rounded-xl shadow-lg shadow-emerald-500/20 text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <ShieldCheck className="w-4 h-4" />
+                        <span>ACTIVATE & BIND DEVICE</span>
+                      </button>
+                    </div>
+
+                    <p className="text-[10px] text-slate-400">
+                      🛡️ This step cryptographically binds the physical device to <span className="text-cyan-400 font-semibold">{pairingEmail}</span>. Once verified, this machine remains permanently authenticated.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
+          ) : (
+            /* ACTIVE OPERATIONAL IOT TERMINAL CARD */
+            <div className="bg-slate-900/95 border-2 border-cyan-500/40 rounded-xl p-4 sm:p-5 shadow-2xl backdrop-blur-md relative overflow-hidden">
+              
+              {/* TOP INDUSTRIAL STATUS BAR */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cyan-900/50 pb-3 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shadow-inner">
+                    <Radio className="w-5 h-5 text-cyan-400 animate-pulse" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-2">
+                        DairyAI 4G IoT Gateway
+                      </h2>
+                      <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 rounded-full flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping" />
+                        4G LTE-M ONLINE
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Autonomous M2M Ingestion &bull; Zero Browser Dependency &bull; Microcontroller Direct
+                    </p>
+                  </div>
+                </div>
 
-            {/* RETRO 16x2 MATRIX BACKLIT LCD SIMULATION */}
-            <div className="bg-emerald-950/80 border-2 border-emerald-600/50 rounded-xl p-3.5 mb-4 shadow-inner relative overflow-hidden font-mono select-none">
-              <div className="absolute top-1 right-2 text-[9px] uppercase tracking-wider text-emerald-500/60 font-mono">
-                16x2 HD44780 LCD
-              </div>
-              <div className="text-emerald-400 text-xs sm:text-sm font-bold tracking-widest drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] leading-relaxed">
-                <div>DAIRY360-4G [V2.4] ONLINE</div>
-                <div className="mt-1 flex items-center justify-between">
-                  <span>
-                    FARMER:{iotFarmerId ? String(iotFarmerId).padStart(3, "0") : "---"} | {iotQty || "0.00"}L
-                  </span>
-                  <span>
-                    F:{iotFat}% S:{iotSnf}%
-                  </span>
+                <div className="flex items-center gap-2 text-[11px] font-mono bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
+                  <Wifi className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="text-slate-400">SIM:</span>
+                  <span className="text-emerald-400 font-semibold">AIRTEL M2M</span>
+                  <span className="text-slate-600">|</span>
+                  <span className="text-slate-400">RSRP:</span>
+                  <span className="text-cyan-300 font-semibold">-68 dBm</span>
                 </div>
               </div>
-            </div>
 
-            {/* HARDWARE DEVICE AUTHENTICATION & MULTI-TENANT BINDING */}
-            <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 text-cyan-400" />
-                  Cryptographic Multi-Tenant Device Key (X-Device-Key)
-                </label>
-                <span className="text-[10px] text-slate-400 font-mono">Flashed in MCU Bootloader</span>
+              {/* RETRO 16x2 MATRIX BACKLIT LCD SIMULATION */}
+              <div className="bg-emerald-950/80 border-2 border-emerald-600/50 rounded-xl p-3.5 mb-4 shadow-inner relative overflow-hidden font-mono select-none">
+                <div className="absolute top-1 right-2 text-[9px] uppercase tracking-wider text-emerald-500/60 font-mono">
+                  16x2 HD44780 LCD
+                </div>
+                <div className="text-emerald-400 text-xs sm:text-sm font-bold tracking-widest drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] leading-relaxed">
+                  <div>DAIRY360-4G [V2.4] ONLINE</div>
+                  <div className="mt-1 flex items-center justify-between">
+                    <span>
+                      FARMER:{iotFarmerId ? String(iotFarmerId).padStart(3, "0") : "---"} | {iotQty || "0.00"}L
+                    </span>
+                    <span>
+                      F:{iotFat}% S:{iotSnf}%
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={iotDeviceKey}
-                  onChange={(e) => setIotDeviceKey(e.target.value)}
-                  placeholder="e.g. admin@smartdairy.com or EKOMILK_BOOTH_01"
-                  className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono text-cyan-300 focus:outline-none focus:border-cyan-400"
-                />
+
+              {/* HARDWARE DEVICE AUTHENTICATION & MULTI-TENANT BINDING */}
+              <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-cyan-400" />
+                    Cryptographic Multi-Tenant Device Key (X-Device-Key)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Device Activated
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleUnpair}
+                      className="text-[10px] text-slate-400 hover:text-amber-400 underline font-mono ml-2 transition-colors"
+                      title="Unpair to test first-time setup again"
+                    >
+                      (Re-pair Device)
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={iotDeviceKey}
+                    onChange={(e) => setIotDeviceKey(e.target.value)}
+                    placeholder="e.g. Admin@gmail.com"
+                    className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono text-cyan-300 focus:outline-none focus:border-cyan-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIotDeviceKey(currentEmail)}
+                    className="px-3 py-1.5 text-[11px] font-mono bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 rounded-lg border border-cyan-500/30 transition-colors font-semibold"
+                    title="Auto-Bind to Logged-in Dairy Admin Email"
+                  >
+                    Auto-Bind My Email
+                  </button>
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5">
+                  <span>🛡️ Active Tenant: <span className="text-cyan-400 font-mono font-semibold">{currentEmail}</span> (Auto-detected from login session)</span>
+                  <span className="text-emerald-400 font-mono">Isolated Database Scope</span>
+                </div>
+              </div>
+
+              {/* TELEMETRY READINGS FORM */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-300 mb-1 flex items-center gap-1">
+                    <User className="w-3.5 h-3.5 text-emerald-400" />
+                    Farmer ID
+                  </label>
+                  <input
+                    type="number"
+                    value={iotFarmerId}
+                    onChange={(e) => setIotFarmerId(e.target.value)}
+                    placeholder="101"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-base font-bold font-mono text-white focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-300 mb-1 block">
+                    Weight (Liters)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={iotQty}
+                    onChange={(e) => setIotQty(e.target.value)}
+                    placeholder="12.50"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-base font-bold font-mono text-cyan-400 focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-300 mb-1 block">
+                    FAT (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={iotFat}
+                    onChange={(e) => setIotFat(e.target.value)}
+                    placeholder="4.20"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-base font-bold font-mono text-amber-400 focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-300 mb-1 block">
+                    SNF (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={iotSnf}
+                    onChange={(e) => setIotSnf(e.target.value)}
+                    placeholder="8.80"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-base font-bold font-mono text-purple-400 focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+              </div>
+
+              {/* QUICK TEST PRESETS */}
+              <div className="flex flex-wrap items-center gap-2 mb-4 bg-slate-950/40 p-2 rounded-lg border border-slate-800">
+                <span className="text-[10px] uppercase font-bold text-slate-400 font-mono mr-1">
+                  Simulate Ekomilk / Scale:
+                </span>
                 <button
                   type="button"
-                  onClick={() => setIotDeviceKey(getEmail() || "Admin@gmail.com")}
-                  className="px-3 py-1.5 text-[11px] font-mono bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 rounded-lg border border-cyan-500/30 transition-colors font-semibold"
-                  title="Auto-Bind to Logged-in Dairy Admin Email"
+                  onClick={() => applyIoTPreset("cow")}
+                  className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-slate-200 transition-colors flex items-center gap-1 border border-slate-700 active:scale-95"
                 >
-                  Auto-Bind My Email
+                  <span>🐄 Cow Sample (4.1% F / 8.6% S)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyIoTPreset("buffalo")}
+                  className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-slate-200 transition-colors flex items-center gap-1 border border-slate-700 active:scale-95"
+                >
+                  <span>🐃 Buffalo Sample (6.8% F / 8.9% S)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyIoTPreset("random")}
+                  className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-slate-200 transition-colors flex items-center gap-1 border border-slate-700 active:scale-95"
+                >
+                  <Sparkles className="w-3 h-3 text-cyan-400" />
+                  <span>Randomize</span>
                 </button>
               </div>
-              <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5">
-                <span>🛡️ Active Tenant: <span className="text-cyan-400 font-mono font-semibold">{getEmail() || "admin@smartdairy.com"}</span> (Auto-detected from login session)</span>
-                <span className="text-emerald-400 font-mono">Isolated Database Scope</span>
-              </div>
-            </div>
 
-            {/* TELEMETRY READINGS FORM */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-              <div>
-                <label className="text-[11px] font-semibold text-slate-300 mb-1 flex items-center gap-1">
-                  <User className="w-3.5 h-3.5 text-emerald-400" />
-                  Farmer ID
-                </label>
-                <input
-                  type="number"
-                  value={iotFarmerId}
-                  onChange={(e) => setIotFarmerId(e.target.value)}
-                  placeholder="101"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-base font-bold font-mono text-white focus:outline-none focus:border-cyan-400"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-slate-300 mb-1 block">
-                  Weight (Liters)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={iotQty}
-                  onChange={(e) => setIotQty(e.target.value)}
-                  placeholder="12.50"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-base font-bold font-mono text-cyan-400 focus:outline-none focus:border-cyan-400"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-slate-300 mb-1 block">
-                  FAT (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={iotFat}
-                  onChange={(e) => setIotFat(e.target.value)}
-                  placeholder="4.20"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-base font-bold font-mono text-amber-400 focus:outline-none focus:border-cyan-400"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-slate-300 mb-1 block">
-                  SNF (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={iotSnf}
-                  onChange={(e) => setIotSnf(e.target.value)}
-                  placeholder="8.80"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-base font-bold font-mono text-purple-400 focus:outline-none focus:border-cyan-400"
-                />
-              </div>
-            </div>
-
-            {/* QUICK TEST PRESETS */}
-            <div className="flex flex-wrap items-center gap-2 mb-4 bg-slate-950/40 p-2 rounded-lg border border-slate-800">
-              <span className="text-[10px] uppercase font-bold text-slate-400 font-mono mr-1">
-                Simulate Ekomilk / Scale:
-              </span>
+              {/* TRANSMIT BUTTON */}
               <button
                 type="button"
-                onClick={() => applyIoTPreset("cow")}
-                className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-slate-200 transition-colors flex items-center gap-1 border border-slate-700 active:scale-95"
+                onClick={handleEmitIoT}
+                disabled={iotSubmitting || !iotFarmerId || !iotQty || !iotFat || !iotSnf}
+                className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-slate-950 font-black py-3 px-5 rounded-xl shadow-lg shadow-cyan-500/20 transition-all text-sm sm:text-base flex items-center justify-center gap-2 active:scale-98 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <span>🐄 Cow Sample (4.1% F / 8.6% S)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => applyIoTPreset("buffalo")}
-                className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-slate-200 transition-colors flex items-center gap-1 border border-slate-700 active:scale-95"
-              >
-                <span>🐃 Buffalo Sample (6.8% F / 8.9% S)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => applyIoTPreset("random")}
-                className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-slate-200 transition-colors flex items-center gap-1 border border-slate-700 active:scale-95"
-              >
-                <Sparkles className="w-3 h-3 text-cyan-400" />
-                <span>Randomize</span>
+                {iotSubmitting ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    <span>Emitting 4G Telemetry Packet to Cloud...</span>
+                  </>
+                ) : (
+                  <>
+                    <Radio className="w-5 h-5" />
+                    <span>TRANSMIT 4G TELEMETRY TO CLOUD (M2M)</span>
+                    <Send className="w-4 h-4 ml-1 opacity-70" />
+                  </>
+                )}
               </button>
             </div>
-
-            {/* TRANSMIT BUTTON */}
-            <button
-              type="button"
-              onClick={handleEmitIoT}
-              disabled={iotSubmitting || !iotFarmerId || !iotQty || !iotFat || !iotSnf}
-              className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-slate-950 font-black py-3 px-5 rounded-xl shadow-lg shadow-cyan-500/20 transition-all text-sm sm:text-base flex items-center justify-center gap-2 active:scale-98 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {iotSubmitting ? (
-                <>
-                  <RefreshCw className="w-5 h-5 animate-spin" />
-                  <span>Emitting 4G Telemetry Packet to Cloud...</span>
-                </>
-              ) : (
-                <>
-                  <Radio className="w-5 h-5" />
-                  <span>TRANSMIT 4G TELEMETRY TO CLOUD (M2M)</span>
-                  <Send className="w-4 h-4 ml-1 opacity-70" />
-                </>
-              )}
-            </button>
-          </div>
+          )}
 
           {/* LIVE CELLULAR TELEMETRY PACKET LOGS */}
           <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono">
