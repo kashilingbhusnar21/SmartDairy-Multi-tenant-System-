@@ -148,10 +148,6 @@ function Sidebar({ onNavigate }) {
                 <Settings size={18} />
                 <span>Milk Pricing</span>
               </NavLink>
-              <NavLink to="/milk-reports" className={navClass} onClick={handleNav}>
-                <FileText size={18} />
-                <span>Advanced Reports</span>
-              </NavLink>
               <NavLink to="/admin/ai-chat" className={navClass} onClick={handleNav}>
                 <Bot size={18} />
                 <span>AI Assistant</span>
