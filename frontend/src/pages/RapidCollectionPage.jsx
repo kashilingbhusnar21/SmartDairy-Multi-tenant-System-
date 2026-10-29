@@ -35,6 +35,7 @@ import { emitIoTTelemetry } from "../services/iotService";
 import { todayISO } from "../utils/dateUtils";
 import { getAutoShift, formatShiftLabel } from "../utils/shiftUtils";
 import { getErrorMessage } from "../utils/errorMessage";
+import { getEmail } from "../utils/auth";
 import {
   playSuccessChime,
   playErrorBuzz,
@@ -53,7 +54,7 @@ export default function RapidCollectionPage() {
 
   // Intake mode: 'pos' (Operator POS Mode) vs 'iot' (4G Cellular IoT Gateway)
   const [intakeMode, setIntakeMode] = useState("pos");
-  const [iotDeviceKey, setIotDeviceKey] = useState("EKOMILK_BOOTH_01");
+  const [iotDeviceKey, setIotDeviceKey] = useState(() => getEmail() || "EKOMILK_BOOTH_01");
   const [iotFarmerId, setIotFarmerId] = useState("101");
   const [iotQty, setIotQty] = useState("12.50");
   const [iotFat, setIotFat] = useState("4.20");
@@ -1151,16 +1152,25 @@ export default function RapidCollectionPage() {
                   />
                   <button
                     type="button"
+                    onClick={() => setIotDeviceKey(getEmail() || "admin@smartdairy.com")}
+                    className="px-2.5 py-1.5 text-[10px] font-mono bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-colors"
+                    title="Reset to Currently Logged-in Admin"
+                  >
+                    Auto-Bind My ID
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setIotDeviceKey("EKOMILK_BOOTH_01")}
                     className="px-2.5 py-1.5 text-[10px] font-mono bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-colors"
                     title="Default Booth Key"
                   >
-                    Reset Key
+                    Default Key
                   </button>
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
-                  🛡️ The backend maps this hardware key directly to the authenticated Dairy Admin tenant. Milk can only be ingested for farmers registered within this tenant.
-                </p>
+                <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5">
+                  <span>🛡️ Active Tenant: <span className="text-cyan-400 font-mono font-semibold">{getEmail() || "admin@smartdairy.com"}</span> (Auto-detected from login session)</span>
+                  <span className="text-emerald-400 font-mono">Isolated Database Scope</span>
+                </div>
               </div>
 
               {/* TELEMETRY READINGS FORM */}
