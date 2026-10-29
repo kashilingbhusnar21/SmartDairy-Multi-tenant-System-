@@ -64,13 +64,59 @@ function FarmerFormPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    const name = (form.fullName || "").trim();
+    const mobile = (form.mobileNumber || "").trim();
+    const village = (form.village || "").trim();
+    const aadhaar = (form.aadhaarNumber || "").trim();
+    const ifsc = (form.ifscCode || "").trim().toUpperCase();
+
+    if (name.length < 2) {
+      setError("Validation Error: Full Name must be at least 2 characters.");
+      toast.error("Validation Error: Full Name must be at least 2 characters.");
+      return;
+    }
+
+    if (!/^[6-9]\d{9}$/.test(mobile)) {
+      setError("Validation Error: Mobile Number must be a valid 10-digit Indian number (e.g. 9876543210).");
+      toast.error("Validation Error: Mobile Number must be a valid 10-digit Indian number (e.g. 9876543210).");
+      return;
+    }
+
+    if (village.length < 2) {
+      setError("Validation Error: Village name must be at least 2 characters.");
+      toast.error("Validation Error: Village name must be at least 2 characters.");
+      return;
+    }
+
+    if (!/^\d{12}$/.test(aadhaar)) {
+      setError("Validation Error: Aadhaar Number must be exactly 12 digits.");
+      toast.error("Validation Error: Aadhaar Number must be exactly 12 digits.");
+      return;
+    }
+
+    if (ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) {
+      setError("Validation Error: IFSC Code must follow standard format (e.g. SBIN0001234).");
+      toast.error("Validation Error: IFSC Code must follow standard format (e.g. SBIN0001234).");
+      return;
+    }
+
     setSubmitting(true);
     try {
+      const sanitizedForm = {
+        ...form,
+        fullName: name,
+        mobileNumber: mobile,
+        village: village,
+        aadhaarNumber: aadhaar,
+        ifscCode: ifsc,
+      };
+
       if (isEdit) {
-        await updateFarmer(id, form);
+        await updateFarmer(id, sanitizedForm);
         toast.success("Farmer updated");
       } else {
-        await createFarmer(form);
+        await createFarmer(sanitizedForm);
         toast.success("Farmer created");
       }
       navigate("/farmers");
