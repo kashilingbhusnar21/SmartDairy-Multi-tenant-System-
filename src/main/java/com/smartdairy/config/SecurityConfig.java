@@ -45,7 +45,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/api/iot/**",
                                 "/send-sms",
-                                "/test"
+                                "/test",
+                                "/uploads/**"
                         )
                         .permitAll()
                         .anyRequest()
