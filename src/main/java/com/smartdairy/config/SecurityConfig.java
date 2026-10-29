@@ -43,6 +43,7 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/api-docs/**",
                                 "/v3/api-docs/**",
+                                "/api/iot/**",
                                 "/send-sms",
                                 "/test"
                         )

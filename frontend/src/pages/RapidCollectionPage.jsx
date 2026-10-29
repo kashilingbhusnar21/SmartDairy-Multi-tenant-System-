@@ -20,13 +20,18 @@ import {
   Lock,
   Unlock,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Radio,
+  Wifi,
+  Send,
+  Cpu
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
 import { createMilkCollection, listDailyCollections } from "../services/milkCollections";
 import { lookupFarmerById } from "../services/farmers";
 import { calculateMilkRate } from "../services/pricingSettings";
+import { emitIoTTelemetry } from "../services/iotService";
 import { todayISO } from "../utils/dateUtils";
 import { getAutoShift, formatShiftLabel } from "../utils/shiftUtils";
 import { getErrorMessage } from "../utils/errorMessage";
@@ -45,6 +50,16 @@ export default function RapidCollectionPage() {
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [hardwareLock, setHardwareLock] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Intake mode: 'pos' (Operator POS Mode) vs 'iot' (4G Cellular IoT Gateway)
+  const [intakeMode, setIntakeMode] = useState("pos");
+  const [iotDeviceKey, setIotDeviceKey] = useState("EKOMILK_BOOTH_01");
+  const [iotFarmerId, setIotFarmerId] = useState("101");
+  const [iotQty, setIotQty] = useState("12.50");
+  const [iotFat, setIotFat] = useState("4.20");
+  const [iotSnf, setIotSnf] = useState("8.80");
+  const [iotSubmitting, setIotSubmitting] = useState(false);
+  const [iotLogs, setIotLogs] = useState([]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -476,6 +491,50 @@ export default function RapidCollectionPage() {
     }
   };
 
+  // 4G IoT Autonomous Telemetry Ingestion Handler
+  const handleEmitIoT = async () => {
+    if (!iotFarmerId) {
+      toast.error("Please enter a Farmer ID for the IoT device");
+      return;
+    }
+    setIotSubmitting(true);
+    try {
+      const payload = {
+        farmerId: Number(iotFarmerId),
+        quantityLiters: Number(iotQty),
+        fatPercentage: Number(iotFat),
+        snfPercentage: Number(iotSnf),
+        shift: shift,
+        date: date
+      };
+      const res = await emitIoTTelemetry(payload, iotDeviceKey);
+      if (audioEnabled) playSuccessChime();
+      toast.success(`📡 4G Telemetry Ingested: Farmer #${res.farmerId} - ₹${res.totalAmount}`, { duration: 3500 });
+      const logEntry = `[${new Date().toLocaleTimeString()}] ✅ 4G TX: Farmer #${res.farmerId} (${res.farmerName}) | ${res.quantityLiters}L @ FAT ${res.fatPercentage}% -> ₹${res.totalAmount} (ID #${res.collectionId})`;
+      setIotLogs((prev) => [logEntry, ...prev.slice(0, 19)]);
+      loadDailyFeed(date);
+    } catch (err) {
+      if (audioEnabled) playErrorBuzz();
+      toast.error(getErrorMessage(err) || "IoT Telemetry failed to ingest");
+      const logEntry = `[${new Date().toLocaleTimeString()}] ❌ 4G ERR: ${getErrorMessage(err)}`;
+      setIotLogs((prev) => [logEntry, ...prev.slice(0, 19)]);
+    } finally {
+      setIotSubmitting(false);
+    }
+  };
+
+  const applyIoTPreset = (preset) => {
+    if (preset === "cow") {
+      setIotQty((9 + Math.random() * 5).toFixed(2));
+      setIotFat("4.10");
+      setIotSnf("8.60");
+    } else if (preset === "buffalo") {
+      setIotQty((12 + Math.random() * 6).toFixed(2));
+      setIotFat("6.80");
+      setIotSnf("8.90");
+    }
+  };
+
   // Calculate session totals
   const sessionTotalLiters = recentCollections.reduce(
     (sum, c) => sum + (parseFloat(c.quantityLiters) || 0),
@@ -513,6 +572,36 @@ export default function RapidCollectionPage() {
 
         {/* CONTROLS: Shift Pill, Hardware Connection, Audio, Fullscreen */}
         <div className="flex items-center flex-wrap gap-2">
+          {/* Intake Mode Switcher: POS vs 4G Cellular IoT Gateway */}
+          <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-700/80 shadow-inner">
+            <button
+              type="button"
+              onClick={() => setIntakeMode("pos")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                intakeMode === "pos"
+                  ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+              title="Standard POS with Web Serial & Touch Numpad"
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              <span>Operator POS</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIntakeMode("iot")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                intakeMode === "iot"
+                  ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+              title="Autonomous 4G Cellular IoT Gateway Simulator"
+            >
+              <Radio className="w-3.5 h-3.5 animate-pulse" />
+              <span>4G Cellular IoT Gateway</span>
+            </button>
+          </div>
+
           {/* Shift Toggle */}
           <button
             type="button"
@@ -647,7 +736,8 @@ export default function RapidCollectionPage() {
       {/* MAIN POS GRID */}
       <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-4 pb-6">
         {/* LEFT / CENTER: PRIMARY RAPID INPUT WORKFLOW (7 COLS) */}
-        <section className="lg:col-span-7 space-y-3">
+        {intakeMode === "pos" ? (
+          <section className="lg:col-span-7 space-y-3">
           <form
             onSubmit={handleSubmit}
             className={`bg-slate-800/95 border rounded-xl p-3.5 sm:p-4 shadow-xl backdrop-blur-sm transition-all duration-300 ${
@@ -988,6 +1078,234 @@ export default function RapidCollectionPage() {
             </div>
           </div>
         </section>
+        ) : (
+          /* VIRTUAL 4G CELLULAR IOT GATEWAY COMPONENT */
+          <section className="lg:col-span-7 space-y-3">
+            <div className="bg-slate-900/95 border-2 border-cyan-500/40 rounded-xl p-4 sm:p-5 shadow-2xl backdrop-blur-md relative overflow-hidden">
+              {/* TOP INDUSTRIAL STATUS BAR */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cyan-900/50 pb-3 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shadow-inner">
+                    <Radio className="w-5 h-5 text-cyan-400 animate-pulse" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-2">
+                        DairyAI 4G IoT Gateway
+                      </h2>
+                      <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 rounded-full flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping" />
+                        4G LTE-M ONLINE
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Autonomous M2M Ingestion &bull; Zero Browser Dependency &bull; Microcontroller Direct
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-[11px] font-mono bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
+                  <Wifi className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="text-slate-400">SIM:</span>
+                  <span className="text-emerald-400 font-semibold">AIRTEL M2M</span>
+                  <span className="text-slate-600">|</span>
+                  <span className="text-slate-400">RSRP:</span>
+                  <span className="text-cyan-300 font-semibold">-68 dBm</span>
+                </div>
+              </div>
+
+              {/* RETRO 16x2 MATRIX BACKLIT LCD SIMULATION */}
+              <div className="bg-emerald-950/80 border-2 border-emerald-600/50 rounded-xl p-3.5 mb-4 shadow-inner relative overflow-hidden font-mono select-none">
+                <div className="absolute top-1 right-2 text-[9px] uppercase tracking-wider text-emerald-500/60 font-mono">
+                  16x2 HD44780 LCD
+                </div>
+                <div className="text-emerald-400 text-xs sm:text-sm font-bold tracking-widest drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] leading-relaxed">
+                  <div>DAIRY360-4G [V2.4] BOOTH #01</div>
+                  <div className="mt-1 flex items-center justify-between">
+                    <span>
+                      FARMER:{iotFarmerId ? iotFarmerId.padStart(3, "0") : "---"} | {iotQty || "0.00"}L
+                    </span>
+                    <span>
+                      F:{iotFat}% S:{iotSnf}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* HARDWARE DEVICE AUTHENTICATION & MULTI-TENANT BINDING */}
+              <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-cyan-400" />
+                    Cryptographic Multi-Tenant Device Key (X-Device-Key)
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-mono">Flashed in MCU Bootloader</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={iotDeviceKey}
+                    onChange={(e) => setIotDeviceKey(e.target.value)}
+                    placeholder="e.g. EKOMILK_BOOTH_01"
+                    className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono text-cyan-300 focus:outline-none focus:border-cyan-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIotDeviceKey("EKOMILK_BOOTH_01")}
+                    className="px-2.5 py-1.5 text-[10px] font-mono bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-colors"
+                    title="Default Booth Key"
+                  >
+                    Reset Key
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
+                  🛡️ The backend maps this hardware key directly to the authenticated Dairy Admin tenant. Milk can only be ingested for farmers registered within this tenant.
+                </p>
+              </div>
+
+              {/* TELEMETRY READINGS FORM */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-300 mb-1 block">
+                    Farmer ID
+                  </label>
+                  <input
+                    type="number"
+                    value={iotFarmerId}
+                    onChange={(e) => setIotFarmerId(e.target.value)}
+                    placeholder="101"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-base font-bold font-mono text-white focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-300 mb-1 block">
+                    Weight (Liters)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={iotQty}
+                    onChange={(e) => setIotQty(e.target.value)}
+                    placeholder="12.50"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-base font-bold font-mono text-cyan-400 focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-300 mb-1 block">
+                    FAT (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={iotFat}
+                    onChange={(e) => setIotFat(e.target.value)}
+                    placeholder="4.20"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-base font-bold font-mono text-amber-400 focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-300 mb-1 block">
+                    SNF (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={iotSnf}
+                    onChange={(e) => setIotSnf(e.target.value)}
+                    placeholder="8.80"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-base font-bold font-mono text-purple-400 focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+              </div>
+
+              {/* QUICK TEST PRESETS */}
+              <div className="flex flex-wrap items-center gap-2 mb-4 bg-slate-950/40 p-2 rounded-lg border border-slate-800">
+                <span className="text-[10px] uppercase font-bold text-slate-400 font-mono mr-1">
+                  Simulate Ekomilk:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => applyIoTPreset("cow")}
+                  className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-slate-200 transition-colors flex items-center gap-1 border border-slate-700"
+                >
+                  <span>🐄 Cow Sample (4.1% F / 8.6% S)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyIoTPreset("buffalo")}
+                  className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-slate-200 transition-colors flex items-center gap-1 border border-slate-700"
+                >
+                  <span>🐃 Buffalo Sample (6.8% F / 8.9% S)</span>
+                </button>
+              </div>
+
+              {/* TRANSMIT BUTTON */}
+              <button
+                type="button"
+                onClick={handleEmitIoT}
+                disabled={iotSubmitting || !iotFarmerId || !iotQty || !iotFat || !iotSnf}
+                className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-slate-950 font-black py-3 px-5 rounded-xl shadow-lg shadow-cyan-500/20 transition-all text-sm sm:text-base flex items-center justify-center gap-2 active:scale-98 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {iotSubmitting ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    <span>Emitting 4G Telemetry Packet to Cloud...</span>
+                  </>
+                ) : (
+                  <>
+                    <Radio className="w-5 h-5" />
+                    <span>TRANSMIT 4G TELEMETRY TO CLOUD (M2M)</span>
+                    <Send className="w-4 h-4 ml-1 opacity-70" />
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* LIVE CELLULAR TELEMETRY PACKET LOGS */}
+            <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono">
+              <div className="flex items-center justify-between text-slate-400 mb-2 border-b border-slate-800 pb-1.5">
+                <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-cyan-400 font-bold">
+                  <Radio className="w-3.5 h-3.5 text-cyan-400" />
+                  Cellular M2M Ingestion Logs (Live Stream)
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-slate-500">
+                    Target: POST /api/iot/milk-intake
+                  </span>
+                  {iotLogs.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setIotLogs([])}
+                      className="text-[10px] text-slate-400 hover:text-slate-200 underline"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="h-28 overflow-y-auto space-y-1 text-slate-300 text-[11px] scrollbar-thin">
+                {iotLogs.length === 0 ? (
+                  <p className="text-slate-600 italic py-2">
+                    Awaiting 4G packet transmission... Click &quot;Transmit 4G Telemetry&quot; or execute the Python CLI simulator (<code className="text-cyan-500">python hardware_simulator/iot_cellular_simulator.py</code>).
+                  </p>
+                ) : (
+                  iotLogs.map((log, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-1.5 rounded text-[11px] font-mono leading-tight ${
+                        log.includes("❌")
+                          ? "bg-red-950/40 border border-red-800/50 text-red-300"
+                          : "bg-cyan-950/30 border border-cyan-800/40 text-cyan-200"
+                      }`}
+                    >
+                      {log}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* RIGHT: TOUCH NUMPAD + LIVE FEED (5 COLS) */}
         <section className="lg:col-span-5 space-y-3">
