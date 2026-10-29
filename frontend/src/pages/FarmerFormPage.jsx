@@ -199,7 +199,11 @@ function FarmerFormPage() {
         }}
       />
       {loadError ? null : (
-      <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-xl p-6 grid gap-4 md:grid-cols-2">
+      <form
+        onSubmit={handleSubmit}
+        autoComplete="off"
+        className="bg-white border border-slate-200 rounded-xl p-6 grid gap-4 md:grid-cols-2"
+      >
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-slate-700 mb-1">
             Full Name <span className="text-xs text-slate-400 font-normal">(letters only)</span>
@@ -293,6 +297,7 @@ function FarmerFormPage() {
             name="ifscCode"
             value={form.ifscCode}
             onChange={handleChange}
+            autoComplete="off"
             maxLength={11}
             placeholder="e.g. SBIN0001234 (total 11 chars)"
             required
@@ -302,14 +307,17 @@ function FarmerFormPage() {
 
         {!isEdit && (
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-slate-700 mb-1">Password <span className="text-slate-500">(Optional - leave blank to set later)</span></label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Password <span className="text-slate-500">(Optional - leave blank to set later)</span>
+            </label>
             <input
               name="password"
               type="password"
               value={form.password}
               onChange={handleChange}
+              autoComplete="new-password"
               minLength={6}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="Enter initial password for farmer login"
             />
           </div>
