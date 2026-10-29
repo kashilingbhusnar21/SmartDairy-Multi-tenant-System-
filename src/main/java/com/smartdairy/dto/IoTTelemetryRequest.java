@@ -3,6 +3,7 @@ package com.smartdairy.dto;
 import com.smartdairy.entity.MilkCollection.Shift;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -18,6 +19,7 @@ import lombok.NoArgsConstructor;
 public class IoTTelemetryRequest {
 
     @NotNull(message = "Farmer ID is required")
+    @Min(value = 1, message = "Farmer ID must be a positive number greater than 0")
     private Long farmerId;
 
     @NotNull(message = "Quantity is required")

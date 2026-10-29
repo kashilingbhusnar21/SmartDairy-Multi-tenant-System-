@@ -16,7 +16,8 @@ import {
   Database,
   Sparkles,
   ShieldCheck,
-  CheckCircle2
+  CheckCircle2,
+  AlertTriangle
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -31,6 +32,27 @@ import {
   playErrorBuzz,
   playKeyClick
 } from "../utils/audioAlerts";
+
+/**
+ * Generates realistic randomized hardware readings from digital scale & Ekomilk analyzer.
+ * Guarantees fresh, non-static samples for every milk intake.
+ */
+function generateRandomSample(type = "random") {
+  if (type === "cow") {
+    const qty = (6.0 + Math.random() * 11.5).toFixed(2); // 6.00 - 17.50 L
+    const fat = (3.6 + Math.random() * 1.1).toFixed(2);  // 3.60 - 4.70%
+    const snf = (8.2 + Math.random() * 0.5).toFixed(2);  // 8.20 - 8.70%
+    return { qty, fat, snf, type: "Cow" };
+  } else if (type === "buffalo") {
+    const qty = (7.5 + Math.random() * 14.5).toFixed(2); // 7.50 - 22.00 L
+    const fat = (6.2 + Math.random() * 2.2).toFixed(2);  // 6.20 - 8.40%
+    const snf = (8.6 + Math.random() * 0.35).toFixed(2); // 8.60 - 8.95%
+    return { qty, fat, snf, type: "Buffalo" };
+  } else {
+    const isBuff = Math.random() > 0.45;
+    return generateRandomSample(isBuff ? "buffalo" : "cow");
+  }
+}
 
 export default function RapidCollectionPage() {
   // Active tenant email
@@ -52,12 +74,12 @@ export default function RapidCollectionPage() {
   const [otpSent, setOtpSent] = useState(false);
   const [pairingLoading, setPairingLoading] = useState(false);
 
-  // 4G IoT Gateway Telemetry State
+  // 4G IoT Gateway Telemetry State - Always starts with fresh random hardware readings
   const [iotDeviceKey, setIotDeviceKey] = useState(() => currentEmail);
-  const [iotFarmerId, setIotFarmerId] = useState("101");
-  const [iotQty, setIotQty] = useState("12.50");
-  const [iotFat, setIotFat] = useState("4.20");
-  const [iotSnf, setIotSnf] = useState("8.80");
+  const [iotFarmerId, setIotFarmerId] = useState(""); // Blank by default - user must enter ID!
+  const [iotQty, setIotQty] = useState(() => (7.5 + Math.random() * 10).toFixed(2));
+  const [iotFat, setIotFat] = useState(() => (3.8 + Math.random() * 3.5).toFixed(2));
+  const [iotSnf, setIotSnf] = useState(() => (8.3 + Math.random() * 0.6).toFixed(2));
   const [iotSubmitting, setIotSubmitting] = useState(false);
   const [iotLogs, setIotLogs] = useState([]);
 
@@ -145,36 +167,42 @@ export default function RapidCollectionPage() {
     toast("Device unpaired. Ready for new activation setup.", { icon: "ℹ️" });
   };
 
-  // Quick Simulation Presets
+  // Quick Hardware Simulation Presets (Generates a dynamic new random sample every click)
   const applyIoTPreset = (preset) => {
     if (audioEnabled) playKeyClick();
-    if (preset === "cow") {
-      setIotQty((9 + Math.random() * 5).toFixed(2));
-      setIotFat("4.10");
-      setIotSnf("8.60");
-    } else if (preset === "buffalo") {
-      setIotQty((12 + Math.random() * 6).toFixed(2));
-      setIotFat("6.80");
-      setIotSnf("8.90");
-    } else if (preset === "random") {
-      const isBuff = Math.random() > 0.5;
-      setIotQty((8 + Math.random() * 10).toFixed(2));
-      setIotFat(isBuff ? (6.2 + Math.random() * 1.5).toFixed(2) : (3.6 + Math.random() * 0.9).toFixed(2));
-      setIotSnf(isBuff ? (8.7 + Math.random() * 0.5).toFixed(2) : (8.4 + Math.random() * 0.4).toFixed(2));
-    }
+    const sample = generateRandomSample(preset);
+    setIotQty(sample.qty);
+    setIotFat(sample.fat);
+    setIotSnf(sample.snf);
+    toast(`🔬 New Hardware Stream: ${sample.type} Milk (${sample.qty}L, ${sample.fat}% FAT, ${sample.snf}% SNF)`, {
+      icon: "🥛",
+      duration: 2500
+    });
   };
 
   // Autonomous 4G IoT Telemetry Emission Handler
   const handleEmitIoT = async () => {
-    if (!iotFarmerId) {
-      toast.error("Please enter a Farmer ID for the IoT device");
+    // 1. Validation: Farmer ID cannot be blank
+    if (!iotFarmerId || iotFarmerId.trim() === "") {
+      toast.error("⚠️ Validation Error: Farmer ID is required! Please enter a valid Farmer ID.");
       if (audioEnabled) playErrorBuzz();
       return;
     }
+
+    // 2. Validation: Farmer ID cannot be 0, negative, or decimal
+    const idNum = Number(iotFarmerId);
+    if (isNaN(idNum) || idNum <= 0 || !Number.isInteger(idNum)) {
+      toast.error(`❌ Validation Error: Invalid Farmer ID (${iotFarmerId}). Farmer ID cannot be 0 or negative (-1). It must be a positive number (1, 2, 3...).`, {
+        duration: 4500
+      });
+      if (audioEnabled) playErrorBuzz();
+      return;
+    }
+
     setIotSubmitting(true);
     try {
       const payload = {
-        farmerId: Number(iotFarmerId),
+        farmerId: idNum,
         quantityLiters: Number(iotQty),
         fatPercentage: Number(iotFat),
         snfPercentage: Number(iotSnf),
@@ -195,6 +223,13 @@ export default function RapidCollectionPage() {
 
       // Reload cloud ledger feed
       loadDailyFeed(date);
+
+      // AUTOMATIC RE-SAMPLE: Generate fresh random hardware readings for next farmer & clear ID
+      const nextSample = generateRandomSample("random");
+      setIotQty(nextSample.qty);
+      setIotFat(nextSample.fat);
+      setIotSnf(nextSample.snf);
+      setIotFarmerId(""); // Reset input for next farmer
     } catch (err) {
       if (audioEnabled) playErrorBuzz();
       const msg = getErrorMessage(err) || "IoT Telemetry failed to ingest";
@@ -437,7 +472,7 @@ export default function RapidCollectionPage() {
                   <div>DAIRY360-4G [V2.4] ONLINE</div>
                   <div className="mt-1 flex items-center justify-between">
                     <span>
-                      FARMER:{iotFarmerId ? String(iotFarmerId).padStart(3, "0") : "---"} | {iotQty || "0.00"}L
+                      FARMER:{iotFarmerId ? String(iotFarmerId).padStart(3, "0") : "---"} | {iotQty}L
                     </span>
                     <span>
                       F:{iotFat}% S:{iotSnf}%
@@ -493,86 +528,142 @@ export default function RapidCollectionPage() {
 
               {/* TELEMETRY READINGS FORM */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                
+                {/* 1. FARMER ID (The ONLY field operator enters!) */}
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-300 mb-1 flex items-center gap-1">
-                    <User className="w-3.5 h-3.5 text-emerald-400" />
-                    Farmer ID
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-bold text-slate-200 flex items-center gap-1">
+                      <User className="w-3.5 h-3.5 text-emerald-400" />
+                      Farmer ID *
+                    </label>
+                    <span className="text-[9px] uppercase font-mono px-1 py-0.2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded">
+                      Manual Input
+                    </span>
+                  </div>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={iotFarmerId}
-                    onChange={(e) => setIotFarmerId(e.target.value)}
-                    placeholder="101"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-base font-bold font-mono text-white focus:outline-none focus:border-cyan-400"
+                    onChange={(e) => {
+                      // Strictly digits only, strips negative signs, letters, and decimals
+                      const onlyDigits = e.target.value.replace(/[^0-9]/g, "");
+                      setIotFarmerId(onlyDigits);
+                    }}
+                    placeholder="e.g. 1"
+                    className={`w-full bg-slate-950 border-2 rounded-lg px-3 py-2 text-base font-bold font-mono text-emerald-400 placeholder-slate-600 focus:outline-none transition-all ${
+                      !iotFarmerId
+                        ? "border-amber-500/60 focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20"
+                        : "border-slate-700 focus:border-cyan-400"
+                    }`}
                   />
+                  {!iotFarmerId && (
+                    <span className="text-[9px] text-amber-400 font-mono mt-1 flex items-center gap-0.5">
+                      <AlertTriangle className="w-2.5 h-2.5" />
+                      Required (&gt; 0)
+                    </span>
+                  )}
                 </div>
+
+                {/* 2. WEIGHT (LITERS) - LOCKED HARDWARE STREAM */}
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-300 mb-1 block">
-                    Weight (Liters)
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-semibold text-slate-400 block">
+                      Weight (L)
+                    </label>
+                    <span className="text-[9px] uppercase font-mono px-1 py-0.2 bg-slate-800 text-slate-400 border border-slate-700 rounded flex items-center gap-0.5">
+                      <Lock className="w-2 h-2 text-cyan-400" />
+                      Scale
+                    </span>
+                  </div>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
+                    readOnly
                     value={iotQty}
-                    onChange={(e) => setIotQty(e.target.value)}
-                    placeholder="12.50"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-base font-bold font-mono text-cyan-400 focus:outline-none focus:border-cyan-400"
+                    title="Locked: Reading streamed directly from digital weighing scale. Manual typing disabled."
+                    className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2 text-base font-bold font-mono text-cyan-400 cursor-not-allowed select-none opacity-90 shadow-inner"
                   />
+                  <span className="text-[9px] text-slate-500 font-mono mt-1 block">
+                    🔒 Auto-Weigh Stream
+                  </span>
                 </div>
+
+                {/* 3. FAT (%) - LOCKED HARDWARE STREAM */}
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-300 mb-1 block">
-                    FAT (%)
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-semibold text-slate-400 block">
+                      FAT (%)
+                    </label>
+                    <span className="text-[9px] uppercase font-mono px-1 py-0.2 bg-slate-800 text-slate-400 border border-slate-700 rounded flex items-center gap-0.5">
+                      <Lock className="w-2 h-2 text-amber-400" />
+                      Ekomilk
+                    </span>
+                  </div>
                   <input
-                    type="number"
-                    step="0.1"
+                    type="text"
+                    readOnly
                     value={iotFat}
-                    onChange={(e) => setIotFat(e.target.value)}
-                    placeholder="4.20"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-base font-bold font-mono text-amber-400 focus:outline-none focus:border-cyan-400"
+                    title="Locked: Reading streamed directly from Ekomilk analyzer. Manual typing disabled."
+                    className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2 text-base font-bold font-mono text-amber-400 cursor-not-allowed select-none opacity-90 shadow-inner"
                   />
+                  <span className="text-[9px] text-slate-500 font-mono mt-1 block">
+                    🔒 Auto-FAT Stream
+                  </span>
                 </div>
+
+                {/* 4. SNF (%) - LOCKED HARDWARE STREAM */}
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-300 mb-1 block">
-                    SNF (%)
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-semibold text-slate-400 block">
+                      SNF (%)
+                    </label>
+                    <span className="text-[9px] uppercase font-mono px-1 py-0.2 bg-slate-800 text-slate-400 border border-slate-700 rounded flex items-center gap-0.5">
+                      <Lock className="w-2 h-2 text-purple-400" />
+                      Ekomilk
+                    </span>
+                  </div>
                   <input
-                    type="number"
-                    step="0.1"
+                    type="text"
+                    readOnly
                     value={iotSnf}
-                    onChange={(e) => setIotSnf(e.target.value)}
-                    placeholder="8.80"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-base font-bold font-mono text-purple-400 focus:outline-none focus:border-cyan-400"
+                    title="Locked: Reading streamed directly from Ekomilk analyzer. Manual typing disabled."
+                    className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2 text-base font-bold font-mono text-purple-400 cursor-not-allowed select-none opacity-90 shadow-inner"
                   />
+                  <span className="text-[9px] text-slate-500 font-mono mt-1 block">
+                    🔒 Auto-SNF Stream
+                  </span>
                 </div>
               </div>
 
-              {/* QUICK TEST PRESETS */}
+              {/* QUICK TEST PRESETS (DYNAMIC RANDOM SAMPLE GENERATION) */}
               <div className="flex flex-wrap items-center gap-2 mb-4 bg-slate-950/40 p-2 rounded-lg border border-slate-800">
                 <span className="text-[10px] uppercase font-bold text-slate-400 font-mono mr-1">
-                  Simulate Ekomilk / Scale:
+                  Trigger Sensor Sample:
                 </span>
                 <button
                   type="button"
                   onClick={() => applyIoTPreset("cow")}
                   className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-slate-200 transition-colors flex items-center gap-1 border border-slate-700 active:scale-95"
+                  title="Generate a dynamic, randomized Cow milk reading"
                 >
-                  <span>🐄 Cow Sample (4.1% F / 8.6% S)</span>
+                  <span>🐄 Cow Sample (Randomized)</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => applyIoTPreset("buffalo")}
                   className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-slate-200 transition-colors flex items-center gap-1 border border-slate-700 active:scale-95"
+                  title="Generate a dynamic, randomized Buffalo milk reading"
                 >
-                  <span>🐃 Buffalo Sample (6.8% F / 8.9% S)</span>
+                  <span>🐃 Buffalo Sample (Randomized)</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => applyIoTPreset("random")}
-                  className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-slate-200 transition-colors flex items-center gap-1 border border-slate-700 active:scale-95"
+                  className="px-2.5 py-1 text-xs bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 rounded transition-colors flex items-center gap-1 border border-cyan-800/60 active:scale-95"
+                  title="Simulate next random milk can on the scale"
                 >
                   <Sparkles className="w-3 h-3 text-cyan-400" />
-                  <span>Randomize</span>
+                  <span>Next Hardware Reading</span>
                 </button>
               </div>
 
@@ -580,7 +671,7 @@ export default function RapidCollectionPage() {
               <button
                 type="button"
                 onClick={handleEmitIoT}
-                disabled={iotSubmitting || !iotFarmerId || !iotQty || !iotFat || !iotSnf}
+                disabled={iotSubmitting || !iotFarmerId || iotFarmerId === "0"}
                 className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-slate-950 font-black py-3 px-5 rounded-xl shadow-lg shadow-cyan-500/20 transition-all text-sm sm:text-base flex items-center justify-center gap-2 active:scale-98 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {iotSubmitting ? (
@@ -624,7 +715,7 @@ export default function RapidCollectionPage() {
             <div className="h-28 overflow-y-auto space-y-1 text-slate-300 text-[11px] scrollbar-thin">
               {iotLogs.length === 0 ? (
                 <p className="text-slate-600 italic py-2">
-                  Awaiting 4G packet transmission... Click &quot;Transmit 4G Telemetry&quot; or execute the Python CLI simulator (<code className="text-cyan-500">python hardware_simulator/iot_cellular_simulator.py</code>).
+                  Awaiting 4G packet transmission... Enter Farmer ID and click &quot;Transmit 4G Telemetry&quot;.
                 </p>
               ) : (
                 iotLogs.map((log, idx) => (
@@ -696,7 +787,7 @@ export default function RapidCollectionPage() {
                   <Database className="w-8 h-8 mx-auto mb-2 opacity-30 text-cyan-400" />
                   <p>No milk intake recorded for today yet.</p>
                   <p className="text-[10px] text-slate-600 mt-1">
-                    Transmit a 4G telemetry packet from the gateway on the left.
+                    Enter Farmer ID and transmit a 4G telemetry packet on the left.
                   </p>
                 </div>
               ) : (
