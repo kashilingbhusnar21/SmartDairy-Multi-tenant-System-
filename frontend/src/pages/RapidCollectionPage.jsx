@@ -275,7 +275,7 @@ export default function RapidCollectionPage() {
                 16x2 HD44780 LCD
               </div>
               <div className="text-emerald-400 text-xs sm:text-sm font-bold tracking-widest drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] leading-relaxed">
-                <div>DAIRY360-4G [V2.4] BOOTH #01</div>
+                <div>DAIRY360-4G [V2.4] ONLINE</div>
                 <div className="mt-1 flex items-center justify-between">
                   <span>
                     FARMER:{iotFarmerId ? String(iotFarmerId).padStart(3, "0") : "---"} | {iotQty || "0.00"}L
@@ -306,19 +306,11 @@ export default function RapidCollectionPage() {
                 />
                 <button
                   type="button"
-                  onClick={() => setIotDeviceKey(getEmail() || "admin@smartdairy.com")}
-                  className="px-2.5 py-1.5 text-[10px] font-mono bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-colors"
-                  title="Auto-Bind to Currently Logged-in Dairy Admin"
+                  onClick={() => setIotDeviceKey(getEmail() || "Admin@gmail.com")}
+                  className="px-3 py-1.5 text-[11px] font-mono bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 rounded-lg border border-cyan-500/30 transition-colors font-semibold"
+                  title="Auto-Bind to Logged-in Dairy Admin Email"
                 >
-                  Auto-Bind My ID
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIotDeviceKey("EKOMILK_BOOTH_01")}
-                  className="px-2.5 py-1.5 text-[10px] font-mono bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-colors"
-                  title="Default Booth Key"
-                >
-                  Default Key
+                  Auto-Bind My Email
                 </button>
               </div>
               <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5">
