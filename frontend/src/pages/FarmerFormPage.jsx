@@ -69,35 +69,66 @@ function FarmerFormPage() {
     const mobile = (form.mobileNumber || "").trim();
     const village = (form.village || "").trim();
     const aadhaar = (form.aadhaarNumber || "").trim();
+    const bankAcc = (form.bankAccountNumber || "").trim();
     const ifsc = (form.ifscCode || "").trim().toUpperCase();
 
-    if (name.length < 2) {
-      setError("Validation Error: Full Name must be at least 2 characters.");
-      toast.error("Validation Error: Full Name must be at least 2 characters.");
+    // 1. Full Name Validation: Letters only, no numbers (e.g. blocks 878678t78876)
+    if (!/^[a-zA-Z\s.'-]+$/.test(name) || name.length < 2) {
+      const msg = "Validation Error: Full Name must contain only letters and spaces (e.g. Ramesh Patil). Numbers and digits like '" + name + "' are not allowed.";
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
+    // 2. Mobile Number Validation: 10 Indian digits
     if (!/^[6-9]\d{9}$/.test(mobile)) {
-      setError("Validation Error: Mobile Number must be a valid 10-digit Indian number (e.g. 9876543210).");
-      toast.error("Validation Error: Mobile Number must be a valid 10-digit Indian number (e.g. 9876543210).");
+      const msg = "Validation Error: Mobile Number must be a valid 10-digit Indian number starting with 6, 7, 8, or 9 (e.g. 9876543210).";
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
-    if (village.length < 2) {
-      setError("Validation Error: Village name must be at least 2 characters.");
-      toast.error("Validation Error: Village name must be at least 2 characters.");
+    // 3. Village Name Validation: Letters only
+    if (!/^[a-zA-Z\s.'-]+$/.test(village) || village.length < 2) {
+      const msg = "Validation Error: Village name must contain only letters and spaces (e.g. Sangli).";
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
+    // 4. Aadhaar Number Validation: Exactly 12 digits, cannot be all identical
     if (!/^\d{12}$/.test(aadhaar)) {
-      setError("Validation Error: Aadhaar Number must be exactly 12 digits.");
-      toast.error("Validation Error: Aadhaar Number must be exactly 12 digits.");
+      const msg = "Validation Error: Aadhaar Number must be exactly 12 numeric digits (e.g. 123412341234).";
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
+    if (/^(\d)\1{11}$/.test(aadhaar)) {
+      const msg = "Validation Error: Aadhaar Number cannot be all repeated identical digits (e.g. 777777777777).";
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
-    if (ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) {
-      setError("Validation Error: IFSC Code must follow standard format (e.g. SBIN0001234).");
-      toast.error("Validation Error: IFSC Code must follow standard format (e.g. SBIN0001234).");
+    // 5. Bank Account Number Validation: 9 to 18 digits (blocks xxxxxxxxxxxxxxx)
+    if (!/^\d{9,18}$/.test(bankAcc)) {
+      const msg = "Validation Error: Bank Account Number must contain 9 to 18 numeric digits (e.g. 123456789012). Dummy text like 'xxxxxxxxxxxxxxx' is not allowed.";
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
+
+    // 6. IFSC Code Validation: Exactly 11 characters, standard format
+    if (ifsc.length !== 11) {
+      const msg = `Validation Error: IFSC Code must be exactly 11 characters. You entered ${ifsc.length} characters (e.g. SBIN0001234 has 3 zeros after SBIN, total 11 chars).`;
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
+    if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) {
+      const msg = "Validation Error: Invalid IFSC format. Must start with 4 bank letters, 5th character must be '0', followed by 6 alphanumeric branch characters (e.g. SBIN0001234).";
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
@@ -109,6 +140,7 @@ function FarmerFormPage() {
         mobileNumber: mobile,
         village: village,
         aadhaarNumber: aadhaar,
+        bankAccountNumber: bankAcc,
         ifscCode: ifsc,
       };
 
@@ -169,35 +201,45 @@ function FarmerFormPage() {
       {loadError ? null : (
       <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-xl p-6 grid gap-4 md:grid-cols-2">
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Full Name <span className="text-xs text-slate-400 font-normal">(letters only)</span>
+          </label>
           <input
             name="fullName"
             value={form.fullName}
             onChange={handleChange}
+            placeholder="e.g. Ramesh Patil"
             required
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Mobile Number</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Mobile Number <span className="text-xs text-slate-400 font-normal">(10 digits)</span>
+          </label>
           <input
             name="mobileNumber"
             value={form.mobileNumber}
             onChange={handleChange}
+            maxLength={10}
+            placeholder="e.g. 9876543210"
             required
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Village</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Village <span className="text-xs text-slate-400 font-normal">(letters only)</span>
+          </label>
           <input
             name="village"
             value={form.village}
             onChange={handleChange}
+            placeholder="e.g. Sangli"
             required
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
           />
         </div>
 
@@ -208,40 +250,53 @@ function FarmerFormPage() {
             value={form.address}
             onChange={handleChange}
             rows={2}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+            placeholder="e.g. Near Bus Stand, Main Road"
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Aadhaar Number</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Aadhaar Number <span className="text-xs text-slate-400 font-normal">(12 digits)</span>
+          </label>
           <input
             name="aadhaarNumber"
             value={form.aadhaarNumber}
             onChange={handleChange}
+            maxLength={12}
+            placeholder="e.g. 123412341234"
             required
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Bank Account Number</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Bank Account Number <span className="text-xs text-slate-400 font-normal">(9 - 18 digits)</span>
+          </label>
           <input
             name="bankAccountNumber"
             value={form.bankAccountNumber}
             onChange={handleChange}
+            maxLength={18}
+            placeholder="e.g. 123456789012"
             required
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
           />
         </div>
 
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-slate-700 mb-1">IFSC Code</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            IFSC Code <span className="text-xs text-slate-400 font-normal">(11 characters e.g. SBIN0001234)</span>
+          </label>
           <input
             name="ifscCode"
             value={form.ifscCode}
             onChange={handleChange}
+            maxLength={11}
+            placeholder="e.g. SBIN0001234 (total 11 chars)"
             required
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm uppercase"
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm uppercase focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
           />
         </div>
 
