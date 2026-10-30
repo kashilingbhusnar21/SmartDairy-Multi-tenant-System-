@@ -103,7 +103,7 @@ class IoTTelemetryControllerTest {
 
         when(userRepository.findByEmail("admin@smartdairy.com")).thenReturn(Optional.of(mockAdmin));
         when(farmerRepository.findByIdAndAdmin(101L, mockAdmin)).thenReturn(Optional.of(mockFarmer));
-        when(pricingSettingsRepository.findByAdmin(mockAdmin)).thenReturn(Optional.of(mockPricing));
+        when(milkPricingService.getPricingSettingsForAdmin(mockAdmin)).thenReturn(mockPricing);
 
         MilkRatePreviewResponse preview = MilkRatePreviewResponse.builder()
                 .ratePerLiter(new BigDecimal("50.81"))
@@ -167,7 +167,7 @@ class IoTTelemetryControllerTest {
 
         when(userRepository.findByEmail("admin@smartdairy.com")).thenReturn(Optional.of(mockAdmin));
         when(farmerRepository.findByIdAndAdmin(101L, mockAdmin)).thenReturn(Optional.of(mockFarmer));
-        when(pricingSettingsRepository.findByAdmin(mockAdmin)).thenReturn(Optional.of(mockPricing));
+        when(milkPricingService.getPricingSettingsForAdmin(mockAdmin)).thenReturn(mockPricing);
 
         MilkRatePreviewResponse preview = MilkRatePreviewResponse.builder()
                 .ratePerLiter(new BigDecimal("48.50"))

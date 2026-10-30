@@ -47,7 +47,6 @@ public class IoTTelemetryController {
     private final UserRepository userRepository;
     private final FarmerRepository farmerRepository;
     private final MilkCollectionRepository milkCollectionRepository;
-    private final PricingSettingsRepository pricingSettingsRepository;
     private final MilkPricingService milkPricingService;
     private final SmsService smsService;
     private final OperationalRecordDateValidator operationalRecordDateValidator;
@@ -91,9 +90,8 @@ public class IoTTelemetryController {
             effectiveShift = (LocalTime.now().getHour() < 13) ? Shift.MORNING : Shift.EVENING;
         }
 
-        // 5. Compute Rate and Payout using Tenant's Pricing Settings
-        PricingSettings ps = pricingSettingsRepository.findByAdmin(admin)
-                .orElseGet(() -> MilkPricingServiceImpl.createDefaultForAdmin(admin));
+        // 5. Compute Rate and Payout using Tenant's Pricing Settings (Cached via Redis)
+        PricingSettings ps = milkPricingService.getPricingSettingsForAdmin(admin);
 
         var ratePreview = milkPricingService.compute(
                 request.getFatPercentage(),
