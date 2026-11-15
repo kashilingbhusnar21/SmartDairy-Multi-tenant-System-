@@ -4,7 +4,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
@@ -14,12 +15,16 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Get the absolute path to the uploads directory
-        File uploadDirectory = new File(uploadDir);
-        String absolutePath = uploadDirectory.getAbsolutePath();
+        Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+        Path baseUploadsPath = uploadPath.getParent() != null ? uploadPath.getParent() : Paths.get("uploads").toAbsolutePath().normalize();
+
+        String uploadUri = baseUploadsPath.toUri().toString();
+        if (!uploadUri.endsWith("/")) {
+            uploadUri += "/";
+        }
 
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:" + absolutePath + "/")
-                .setCachePeriod(3600); // Cache for 1 hour
+                .addResourceLocations(uploadUri)
+                .setCachePeriod(3600);
     }
 }

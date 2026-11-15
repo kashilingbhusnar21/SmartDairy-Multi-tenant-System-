@@ -140,6 +140,24 @@ function FeedPurchasesPage() {
   const submit = async (e) => {
     e.preventDefault();
     
+    if (!form.farmerId) {
+      toast.error('Validation Error: Please select a farmer.');
+      return;
+    }
+
+    const qty = Number(form.feedQuantity);
+    const rate = Number(form.ratePerUnit);
+
+    if (isNaN(qty) || qty <= 0 || qty > 10000) {
+      toast.error('Validation Error: Feed quantity must be greater than 0 and up to 10,000 units.');
+      return;
+    }
+
+    if (isNaN(rate) || rate <= 0 || rate > 50000) {
+      toast.error('Validation Error: Rate per unit must be greater than ₹0 and up to ₹50,000.');
+      return;
+    }
+
     // Validation for OTHER custom inputs
     if (form.feedType === 'OTHER' && (!form.customFeedType || form.customFeedType.trim() === '')) {
       toast.error('Please enter a custom feed type');

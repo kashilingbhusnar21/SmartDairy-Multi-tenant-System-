@@ -75,14 +75,42 @@ function AdminSettingsPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const fat = Number(form.defaultFat);
+    const snf = Number(form.defaultSnf);
+    const base = Number(form.baseRatePerLiter);
+    const fatBonus = Number(form.fatBonusPerPoint);
+    const snfBonus = Number(form.snfBonusPerPoint);
+
+    if (isNaN(fat) || fat < 2.0 || fat > 12.0) {
+      toast.error("Validation Error: Default FAT % must be between 2.0% and 12.0% (e.g. 3.5% Cow or 6.0% Buffalo).");
+      return;
+    }
+    if (isNaN(snf) || snf < 6.0 || snf > 12.0) {
+      toast.error("Validation Error: Default SNF % must be between 6.0% and 12.0% (standard baseline is 8.5%).");
+      return;
+    }
+    if (isNaN(base) || base < 10.0 || base > 200.0) {
+      toast.error("Validation Error: Base rate must be between ₹10.00 and ₹200.00 per liter.");
+      return;
+    }
+    if (isNaN(fatBonus) || fatBonus < 0 || fatBonus > 50.0) {
+      toast.error("Validation Error: FAT bonus per point must be between ₹0.00 and ₹50.00.");
+      return;
+    }
+    if (isNaN(snfBonus) || snfBonus < 0 || snfBonus > 50.0) {
+      toast.error("Validation Error: SNF bonus per point must be between ₹0.00 and ₹50.00.");
+      return;
+    }
+
     setSaving(true);
     try {
       const payload = {
-        defaultFat: Number(form.defaultFat),
-        defaultSnf: Number(form.defaultSnf),
-        baseRatePerLiter: Number(form.baseRatePerLiter),
-        fatBonusPerPoint: Number(form.fatBonusPerPoint),
-        snfBonusPerPoint: Number(form.snfBonusPerPoint),
+        defaultFat: fat,
+        defaultSnf: snf,
+        baseRatePerLiter: base,
+        fatBonusPerPoint: fatBonus,
+        snfBonusPerPoint: snfBonus,
       };
       await updatePricingSettings(payload);
       toast.success("Pricing settings saved. New collections will use these values.");
@@ -95,6 +123,20 @@ function AdminSettingsPage() {
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
+
+    if (!profile.dairyName || !profile.dairyName.trim()) {
+      toast.error("Validation Error: Dairy Name is required.");
+      return;
+    }
+    if (profile.contactNumber && !/^[6-9]\d{9}$/.test(profile.contactNumber.trim())) {
+      toast.error("Validation Error: Contact number must be a valid 10-digit Indian mobile number (e.g. 9876543210).");
+      return;
+    }
+    if (profile.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email.trim())) {
+      toast.error("Validation Error: Please enter a valid email address.");
+      return;
+    }
+
     setProfileSaving(true);
     try {
       await updateMyDairyProfile(profile);
@@ -193,63 +235,83 @@ function AdminSettingsPage() {
             <h3 className="font-semibold text-slate-800">Milk pricing settings</h3>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Default fat %</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Default fat % <span className="text-xs text-slate-400 font-normal">(2.0% - 12.0%)</span>
+            </label>
             <input
               name="defaultFat"
               type="number"
               step="0.01"
+              min="2.0"
+              max="12.0"
               value={form.defaultFat}
               onChange={handleChange}
               required
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Default SNF %</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Default SNF % <span className="text-xs text-slate-400 font-normal">(6.0% - 12.0%)</span>
+            </label>
             <input
               name="defaultSnf"
               type="number"
               step="0.01"
+              min="6.0"
+              max="12.0"
               value={form.defaultSnf}
               onChange={handleChange}
               required
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Base rate (₹/L)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Base rate (₹/L) <span className="text-xs text-slate-400 font-normal">(₹10 - ₹200)</span>
+            </label>
             <input
               name="baseRatePerLiter"
               type="number"
               step="0.01"
+              min="10.0"
+              max="200.0"
               value={form.baseRatePerLiter}
               onChange={handleChange}
               required
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Fat bonus per point (₹)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Fat bonus per point (₹) <span className="text-xs text-slate-400 font-normal">(₹0 - ₹50)</span>
+            </label>
             <input
               name="fatBonusPerPoint"
               type="number"
               step="0.01"
+              min="0.0"
+              max="50.0"
               value={form.fatBonusPerPoint}
               onChange={handleChange}
               required
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">SNF bonus per point (₹)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              SNF bonus per point (₹) <span className="text-xs text-slate-400 font-normal">(₹0 - ₹50)</span>
+            </label>
             <input
               name="snfBonusPerPoint"
               type="number"
               step="0.01"
+              min="0.0"
+              max="50.0"
               value={form.snfBonusPerPoint}
               onChange={handleChange}
               required
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
           <div className="sm:col-span-2 flex justify-end pt-2">

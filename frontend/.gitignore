@@ -1,4 +1,3 @@
 node_modules
 dist
-.env
-echo "src/main/resources/application-local.properties" >> .gitignore
+.env.local

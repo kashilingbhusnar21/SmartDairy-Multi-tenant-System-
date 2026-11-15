@@ -54,7 +54,7 @@ class FarmerServiceImplTest {
                 .mobileNumber("9876543210")
                 .village("Kalyanpur")
                 .aadhaarNumber("123412341234")
-                .bankAccountNumber("SBIN123456")
+                .bankAccountNumber("123456789012")
                 .ifscCode("SBIN0001234")
                 .active(true)
                 .build();
@@ -64,7 +64,7 @@ class FarmerServiceImplTest {
         validRequest.setMobileNumber("9876543210");
         validRequest.setVillage("Kalyanpur");
         validRequest.setAadhaarNumber("123412341234");
-        validRequest.setBankAccountNumber("SBIN123456");
+        validRequest.setBankAccountNumber("123456789012");
         validRequest.setIfscCode("SBIN0001234");
     }
 

@@ -50,6 +50,24 @@ function MilkCollectionFormPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const qty = Number(formData.quantityLiters);
+    const fat = Number(formData.fatPercentage);
+    const snf = Number(formData.snfPercentage);
+
+    if (isNaN(qty) || qty < 0.1 || qty > 1000) {
+      setError("Validation Error: Quantity must be between 0.10 and 1000.00 Liters.");
+      return;
+    }
+    if (isNaN(fat) || fat < 2.0 || fat > 12.0) {
+      setError("Validation Error: FAT % must be between 2.0% and 12.0% (e.g. 3.5% - 8.5%).");
+      return;
+    }
+    if (isNaN(snf) || snf < 6.0 || snf > 12.0) {
+      setError("Validation Error: SNF % must be between 6.0% and 12.0% (standard is 8.0% - 9.5%).");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -130,48 +148,54 @@ function MilkCollectionFormPage() {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Quantity (Liters) *
+              Quantity (Liters) * <span className="text-xs text-slate-400 font-normal">(0.1 - 1000 L)</span>
             </label>
             <input
               type="number"
-              step="0.1"
+              step="0.01"
+              min="0.1"
+              max="1000"
               name="quantityLiters"
               value={formData.quantityLiters}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              placeholder="0.0"
+              placeholder="0.00"
               required
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Fat (%)
+              Fat (%) * <span className="text-xs text-slate-400 font-normal">(2.0% - 12.0%)</span>
             </label>
             <input
               type="number"
-              step="0.1"
+              step="0.01"
+              min="2.0"
+              max="12.0"
               name="fatPercentage"
               value={formData.fatPercentage}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              placeholder="0.0"
+              placeholder="0.00"
               required
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              SNF (%)
+              SNF (%) * <span className="text-xs text-slate-400 font-normal">(6.0% - 12.0%)</span>
             </label>
             <input
               type="number"
-              step="0.1"
+              step="0.01"
+              min="6.0"
+              max="12.0"
               name="snfPercentage"
               value={formData.snfPercentage}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              placeholder="0.0"
+              placeholder="0.00"
               required
             />
           </div>

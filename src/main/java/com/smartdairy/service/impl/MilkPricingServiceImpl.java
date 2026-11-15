@@ -12,6 +12,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,8 +28,17 @@ public class MilkPricingServiceImpl implements MilkPricingService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "rateCharts", key = "#admin.id")
+    public PricingSettings getPricingSettingsForAdmin(User admin) {
+        return pricingSettingsRepository.findByAdmin(admin)
+                .orElseGet(() -> pricingSettingsRepository.save(createDefaultForAdmin(admin)));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PricingSettings getCurrentEntity() {
-        return getOrCreateForCurrentAdmin();
+        User admin = userService.getLoggedInUser();
+        return getPricingSettingsForAdmin(admin);
     }
 
     @Override
@@ -38,6 +49,7 @@ public class MilkPricingServiceImpl implements MilkPricingService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "rateCharts", allEntries = true)
     public PricingSettingsResponse update(PricingSettingsUpdateRequest request) {
         User admin = userService.getLoggedInUser();
         PricingSettings settings = pricingSettingsRepository.findByAdmin(admin)

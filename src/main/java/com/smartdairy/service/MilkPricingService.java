@@ -8,6 +8,8 @@ import java.math.BigDecimal;
 
 public interface MilkPricingService {
 
+    PricingSettings getPricingSettingsForAdmin(com.smartdairy.entity.User admin);
+
     PricingSettings getCurrentEntity();
 
     PricingSettingsResponse getCurrent();
