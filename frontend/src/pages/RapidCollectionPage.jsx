@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Radio,
   Wifi,
@@ -17,7 +17,11 @@ import {
   Sparkles,
   ShieldCheck,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  AlertCircle,
+  XCircle,
+  RotateCcw,
+  Check
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -74,14 +78,24 @@ export default function RapidCollectionPage() {
   const [otpSent, setOtpSent] = useState(false);
   const [pairingLoading, setPairingLoading] = useState(false);
 
-  // 4G IoT Gateway Telemetry State - Always starts with fresh random hardware readings
+  // 4G IoT Gateway Telemetry State - Starts empty until a sample is triggered or stream received
   const [iotDeviceKey, setIotDeviceKey] = useState(() => currentEmail);
-  const [iotFarmerId, setIotFarmerId] = useState(""); // Blank by default - user must enter ID!
-  const [iotQty, setIotQty] = useState(() => (7.5 + Math.random() * 10).toFixed(2));
-  const [iotFat, setIotFat] = useState(() => (3.8 + Math.random() * 3.5).toFixed(2));
-  const [iotSnf, setIotSnf] = useState(() => (8.3 + Math.random() * 0.6).toFixed(2));
+  const [iotFarmerId, setIotFarmerId] = useState(""); // Blank by default - operator enters ID!
+  const [iotQty, setIotQty] = useState("");
+  const [iotFat, setIotFat] = useState("");
+  const [iotSnf, setIotSnf] = useState("");
   const [iotSubmitting, setIotSubmitting] = useState(false);
   const [iotLogs, setIotLogs] = useState([]);
+
+  // Duplicate Milk Entry Confirmation Modal State
+  const [duplicateModal, setDuplicateModal] = useState({
+    isOpen: false,
+    existing: null,
+    pendingPayload: null
+  });
+
+  // Farmer ID input ref for instant auto-focus & keyboard navigation
+  const farmerIdInputRef = useRef(null);
 
   // Cloud Ingestion Ledger Feed
   const [recentCollections, setRecentCollections] = useState([]);
@@ -167,54 +181,43 @@ export default function RapidCollectionPage() {
     toast("Device unpaired. Ready for new activation setup.", { icon: "ℹ️" });
   };
 
-  // Quick Hardware Simulation Presets (Generates a dynamic new random sample every click)
+  // Clear screen state completely (empty screen after save or on manual reset)
+  const clearInputs = useCallback(() => {
+    setIotFarmerId("");
+    setIotQty("");
+    setIotFat("");
+    setIotSnf("");
+    setTimeout(() => {
+      farmerIdInputRef.current?.focus();
+    }, 60);
+  }, []);
+
+  // Quick Hardware Simulation Presets (Generates dynamic sample & focuses Farmer ID for instant Enter save)
   const applyIoTPreset = (preset) => {
     if (audioEnabled) playKeyClick();
     const sample = generateRandomSample(preset);
     setIotQty(sample.qty);
     setIotFat(sample.fat);
     setIotSnf(sample.snf);
-    toast(`🔬 New Hardware Stream: ${sample.type} Milk (${sample.qty}L, ${sample.fat}% FAT, ${sample.snf}% SNF)`, {
+    toast(`🔬 Sensor Sample Ready: ${sample.type} Milk (${sample.qty}L, ${sample.fat}% FAT, ${sample.snf}% SNF)`, {
       icon: "🥛",
-      duration: 2500
+      duration: 3000
     });
+    // Auto-focus Farmer ID input so pressing Enter immediately submits
+    setTimeout(() => {
+      farmerIdInputRef.current?.focus();
+    }, 50);
   };
 
-  // Autonomous 4G IoT Telemetry Emission Handler
-  const handleEmitIoT = async () => {
-    // 1. Validation: Farmer ID cannot be blank
-    if (!iotFarmerId || iotFarmerId.trim() === "") {
-      toast.error("⚠️ Validation Error: Farmer ID is required! Please enter a valid Farmer ID.");
-      if (audioEnabled) playErrorBuzz();
-      return;
-    }
-
-    // 2. Validation: Farmer ID cannot be 0, negative, or decimal
-    const idNum = Number(iotFarmerId);
-    if (isNaN(idNum) || idNum <= 0 || !Number.isInteger(idNum)) {
-      toast.error(`❌ Validation Error: Invalid Farmer ID (${iotFarmerId}). Farmer ID cannot be 0 or negative (-1). It must be a positive number (1, 2, 3...).`, {
-        duration: 4500
-      });
-      if (audioEnabled) playErrorBuzz();
-      return;
-    }
-
+  // Direct Ingestion Execution (Invoked directly or after admin confirms duplicate modal)
+  const executeSave = async (payload) => {
     setIotSubmitting(true);
     try {
-      const payload = {
-        farmerId: idNum,
-        quantityLiters: Number(iotQty),
-        fatPercentage: Number(iotFat),
-        snfPercentage: Number(iotSnf),
-        shift: shift,
-        date: date
-      };
-
       const res = await emitIoTTelemetry(payload, iotDeviceKey);
 
       if (audioEnabled) playSuccessChime();
       toast.success(
-        `📡 4G Telemetry Ingested: Farmer #${res.farmerId} (${res.farmerName}) -> ₹${res.totalAmount}`,
+        `📡 Milk Saved: Farmer #${res.farmerId} (${res.farmerName}) -> ₹${res.totalAmount}`,
         { duration: 4000, icon: "✅" }
       );
 
@@ -224,22 +227,122 @@ export default function RapidCollectionPage() {
       // Reload cloud ledger feed
       loadDailyFeed(date);
 
-      // AUTOMATIC RE-SAMPLE: Generate fresh random hardware readings for next farmer & clear ID
-      const nextSample = generateRandomSample("random");
-      setIotQty(nextSample.qty);
-      setIotFat(nextSample.fat);
-      setIotSnf(nextSample.snf);
-      setIotFarmerId(""); // Reset input for next farmer
+      // SCREEN EMPTY: Reset all inputs completely for next milk intake
+      clearInputs();
     } catch (err) {
       if (audioEnabled) playErrorBuzz();
-      const msg = getErrorMessage(err) || "IoT Telemetry failed to ingest";
+      const msg = getErrorMessage(err) || "Milk collection failed to ingest";
       toast.error(msg);
       const logEntry = `[${new Date().toLocaleTimeString()}] ❌ 4G ERR: ${msg}`;
       setIotLogs((prev) => [logEntry, ...prev.slice(0, 19)]);
     } finally {
       setIotSubmitting(false);
+      setDuplicateModal({ isOpen: false, existing: null, pendingPayload: null });
     }
   };
+
+  // Submission Pipeline: Validates fields, checks for duplicate shift entry, and handles Enter key
+  const handleAttemptSubmit = useCallback(() => {
+    // 1. Validation: Farmer ID cannot be blank
+    if (!iotFarmerId || iotFarmerId.trim() === "") {
+      toast.error("⚠️ Validation Error: Farmer ID is required! Please enter a Farmer ID.");
+      if (audioEnabled) playErrorBuzz();
+      farmerIdInputRef.current?.focus();
+      return;
+    }
+
+    // 2. Validation: Farmer ID must be positive integer
+    const idNum = Number(iotFarmerId);
+    if (isNaN(idNum) || idNum <= 0 || !Number.isInteger(idNum)) {
+      toast.error(`❌ Validation Error: Invalid Farmer ID (${iotFarmerId}). It must be a positive number (1, 2, 3...).`, {
+        duration: 4500
+      });
+      if (audioEnabled) playErrorBuzz();
+      farmerIdInputRef.current?.focus();
+      return;
+    }
+
+    // 3. Validation: Sensor data (Weight, FAT, SNF) must be present
+    if (!iotQty || !iotFat || !iotSnf || Number(iotQty) <= 0) {
+      toast.error("⚠️ Sensor Data Missing: Please trigger a Cow or Buffalo sample reading first!");
+      if (audioEnabled) playErrorBuzz();
+      return;
+    }
+
+    const payload = {
+      farmerId: idNum,
+      quantityLiters: Number(iotQty),
+      fatPercentage: Number(iotFat),
+      snfPercentage: Number(iotSnf),
+      shift: shift,
+      date: date
+    };
+
+    // 4. Duplicate Check: Search for an existing entry for this farmer in the CURRENT shift
+    const existingEntry = recentCollections.find(
+      (c) => Number(c.farmerId) === idNum && c.shift === shift
+    );
+
+    if (existingEntry) {
+      // DUPLICATE DETECTED -> Open confirmation popup modal for Admin decision
+      if (audioEnabled) playErrorBuzz();
+      setDuplicateModal({
+        isOpen: true,
+        existing: existingEntry,
+        pendingPayload: payload
+      });
+      return;
+    }
+
+    // If no duplicate found, proceed to save immediately
+    executeSave(payload);
+  }, [iotFarmerId, iotQty, iotFat, iotSnf, shift, date, recentCollections, audioEnabled, iotDeviceKey, clearInputs, loadDailyFeed]);
+
+  // Modal Handlers
+  const handleConfirmDuplicate = useCallback(() => {
+    if (duplicateModal.pendingPayload) {
+      executeSave(duplicateModal.pendingPayload);
+    }
+  }, [duplicateModal.pendingPayload, executeSave]);
+
+  const handleCancelDuplicate = useCallback(() => {
+    setDuplicateModal({ isOpen: false, existing: null, pendingPayload: null });
+    if (audioEnabled) playKeyClick();
+    setTimeout(() => {
+      farmerIdInputRef.current?.focus();
+    }, 50);
+  }, [audioEnabled]);
+
+  // Global Keyboard Navigation (Enter to save, Esc to cancel duplicate modal)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      // Modal open shortcuts
+      if (duplicateModal.isOpen) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          handleConfirmDuplicate();
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          handleCancelDuplicate();
+        }
+        return;
+      }
+
+      // Enter key anywhere on POS triggers submission if not inside another text input
+      if (e.key === "Enter") {
+        const activeTag = document.activeElement?.tagName;
+        const activeType = document.activeElement?.type;
+        // If active element is a button or non-date input or farmerId input, trigger submit
+        if (activeTag !== "INPUT" || document.activeElement === farmerIdInputRef.current) {
+          e.preventDefault();
+          handleAttemptSubmit();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [duplicateModal, handleConfirmDuplicate, handleCancelDuplicate, handleAttemptSubmit]);
 
   // Calculate session totals
   const sessionTotalLiters = recentCollections.reduce(
@@ -472,10 +575,10 @@ export default function RapidCollectionPage() {
                   <div>DAIRY360-4G [V2.4] ONLINE</div>
                   <div className="mt-1 flex items-center justify-between">
                     <span>
-                      FARMER:{iotFarmerId ? String(iotFarmerId).padStart(3, "0") : "---"} | {iotQty}L
+                      FARMER:{iotFarmerId ? String(iotFarmerId).padStart(3, "0") : "---"} | {iotQty ? `${iotQty}L` : "---L"}
                     </span>
                     <span>
-                      F:{iotFat}% S:{iotSnf}%
+                      F:{iotFat ? `${iotFat}%` : "--%"} S:{iotSnf ? `${iotSnf}%` : "--%"}
                     </span>
                   </div>
                 </div>
@@ -541,6 +644,7 @@ export default function RapidCollectionPage() {
                     </span>
                   </div>
                   <input
+                    ref={farmerIdInputRef}
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
@@ -549,6 +653,12 @@ export default function RapidCollectionPage() {
                       // Strictly digits only, strips negative signs, letters, and decimals
                       const onlyDigits = e.target.value.replace(/[^0-9]/g, "");
                       setIotFarmerId(onlyDigits);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAttemptSubmit();
+                      }
                     }}
                     placeholder="e.g. 1"
                     className={`w-full bg-slate-950 border-2 rounded-lg px-3 py-2 text-base font-bold font-mono text-emerald-400 placeholder-slate-600 focus:outline-none transition-all ${
@@ -579,9 +689,10 @@ export default function RapidCollectionPage() {
                   <input
                     type="text"
                     readOnly
-                    value={iotQty}
+                    value={iotQty || ""}
+                    placeholder="0.00"
                     title="Locked: Reading streamed directly from digital weighing scale. Manual typing disabled."
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2 text-base font-bold font-mono text-cyan-400 cursor-not-allowed select-none opacity-90 shadow-inner"
+                    className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2 text-base font-bold font-mono text-cyan-400 placeholder-slate-600 cursor-not-allowed select-none opacity-90 shadow-inner"
                   />
                   <span className="text-[9px] text-slate-500 font-mono mt-1 block">
                     🔒 Auto-Weigh Stream
@@ -602,9 +713,10 @@ export default function RapidCollectionPage() {
                   <input
                     type="text"
                     readOnly
-                    value={iotFat}
+                    value={iotFat || ""}
+                    placeholder="0.00"
                     title="Locked: Reading streamed directly from Ekomilk analyzer. Manual typing disabled."
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2 text-base font-bold font-mono text-amber-400 cursor-not-allowed select-none opacity-90 shadow-inner"
+                    className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2 text-base font-bold font-mono text-amber-400 placeholder-slate-600 cursor-not-allowed select-none opacity-90 shadow-inner"
                   />
                   <span className="text-[9px] text-slate-500 font-mono mt-1 block">
                     🔒 Auto-FAT Stream
@@ -625,9 +737,10 @@ export default function RapidCollectionPage() {
                   <input
                     type="text"
                     readOnly
-                    value={iotSnf}
+                    value={iotSnf || ""}
+                    placeholder="0.00"
                     title="Locked: Reading streamed directly from Ekomilk analyzer. Manual typing disabled."
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2 text-base font-bold font-mono text-purple-400 cursor-not-allowed select-none opacity-90 shadow-inner"
+                    className="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2 text-base font-bold font-mono text-purple-400 placeholder-slate-600 cursor-not-allowed select-none opacity-90 shadow-inner"
                   />
                   <span className="text-[9px] text-slate-500 font-mono mt-1 block">
                     🔒 Auto-SNF Stream
@@ -644,7 +757,7 @@ export default function RapidCollectionPage() {
                   type="button"
                   onClick={() => applyIoTPreset("cow")}
                   className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-slate-200 transition-colors flex items-center gap-1 border border-slate-700 active:scale-95"
-                  title="Generate a dynamic, randomized Cow milk reading"
+                  title="Generate a dynamic, randomized Cow milk reading & focus Farmer ID"
                 >
                   <span>🐄 Cow Sample (Randomized)</span>
                 </button>
@@ -652,7 +765,7 @@ export default function RapidCollectionPage() {
                   type="button"
                   onClick={() => applyIoTPreset("buffalo")}
                   className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-slate-200 transition-colors flex items-center gap-1 border border-slate-700 active:scale-95"
-                  title="Generate a dynamic, randomized Buffalo milk reading"
+                  title="Generate a dynamic, randomized Buffalo milk reading & focus Farmer ID"
                 >
                   <span>🐃 Buffalo Sample (Randomized)</span>
                 </button>
@@ -660,18 +773,29 @@ export default function RapidCollectionPage() {
                   type="button"
                   onClick={() => applyIoTPreset("random")}
                   className="px-2.5 py-1 text-xs bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 rounded transition-colors flex items-center gap-1 border border-cyan-800/60 active:scale-95"
-                  title="Simulate next random milk can on the scale"
+                  title="Simulate next random milk can on the scale & focus Farmer ID"
                 >
                   <Sparkles className="w-3 h-3 text-cyan-400" />
                   <span>Next Hardware Reading</span>
                 </button>
+                {(iotQty || iotFarmerId) && (
+                  <button
+                    type="button"
+                    onClick={clearInputs}
+                    className="px-2 py-1 text-xs bg-slate-850 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1 border border-slate-700 active:scale-95 ml-auto"
+                    title="Empty/Reset Screen"
+                  >
+                    <RotateCcw className="w-3 h-3 text-slate-400" />
+                    <span>Clear</span>
+                  </button>
+                )}
               </div>
 
               {/* TRANSMIT BUTTON */}
               <button
                 type="button"
-                onClick={handleEmitIoT}
-                disabled={iotSubmitting || !iotFarmerId || iotFarmerId === "0"}
+                onClick={handleAttemptSubmit}
+                disabled={iotSubmitting || !iotFarmerId || iotFarmerId === "0" || !iotQty || !iotFat || !iotSnf}
                 className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-slate-950 font-black py-3 px-5 rounded-xl shadow-lg shadow-cyan-500/20 transition-all text-sm sm:text-base flex items-center justify-center gap-2 active:scale-98 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {iotSubmitting ? (
@@ -679,10 +803,20 @@ export default function RapidCollectionPage() {
                     <RefreshCw className="w-5 h-5 animate-spin" />
                     <span>Emitting 4G Telemetry Packet to Cloud...</span>
                   </>
+                ) : !iotQty || !iotFat || !iotSnf ? (
+                  <>
+                    <Sparkles className="w-5 h-5 text-amber-400 animate-bounce" />
+                    <span>SELECT COW OR BUFFALO SAMPLE FIRST</span>
+                  </>
+                ) : !iotFarmerId ? (
+                  <>
+                    <User className="w-5 h-5 text-emerald-400" />
+                    <span>ENTER FARMER ID & PRESS ENTER ↵</span>
+                  </>
                 ) : (
                   <>
                     <Radio className="w-5 h-5" />
-                    <span>TRANSMIT 4G TELEMETRY TO CLOUD (M2M)</span>
+                    <span>TRANSMIT 4G TELEMETRY (ENTER ↵)</span>
                     <Send className="w-4 h-4 ml-1 opacity-70" />
                   </>
                 )}
@@ -834,6 +968,94 @@ export default function RapidCollectionPage() {
         </section>
 
       </main>
+
+      {/* DUPLICATE COLLECTION WARNING & CONFIRMATION MODAL */}
+      {duplicateModal.isOpen && duplicateModal.existing && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border-2 border-amber-500/80 rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Top Accent Warning Strip */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500" />
+
+            <div className="flex items-start gap-3.5 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center flex-shrink-0 text-amber-400 shadow-inner">
+                <AlertTriangle className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-black text-white">Duplicate Entry Warning</h3>
+                  <span className="px-2 py-0.5 text-[10px] font-mono font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full">
+                    Double Shift Check
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                  A milk collection entry already exists for <strong className="text-cyan-300 font-mono">Farmer #{duplicateModal.existing.farmerId} ({duplicateModal.existing.farmerName || "Farmer"})</strong> for today&apos;s <span className="text-amber-400 font-bold uppercase">{shift}</span> shift!
+                </p>
+              </div>
+            </div>
+
+            {/* COMPARISON CARDS */}
+            <div className="grid grid-cols-2 gap-3 mb-4 font-mono text-xs">
+              {/* EXISTING ENTRY */}
+              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1">
+                  <History className="w-3 h-3 text-cyan-400" />
+                  Already Saved Today:
+                </div>
+                <div className="text-sm font-bold text-slate-200">
+                  {duplicateModal.existing.quantityLiters} L
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">
+                  FAT: <span className="text-amber-300">{duplicateModal.existing.fatPercentage}%</span> | SNF: <span className="text-purple-300">{duplicateModal.existing.snfPercentage}%</span>
+                </div>
+                <div className="text-xs font-bold text-emerald-400 mt-1">
+                  Amount: ₹{Number(duplicateModal.existing.totalAmount).toFixed(2)}
+                </div>
+              </div>
+
+              {/* NEW INCOMING ENTRY */}
+              <div className="p-3 rounded-xl bg-amber-950/20 border border-amber-500/40">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400 mb-1 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-amber-400" />
+                  New Second Intake:
+                </div>
+                <div className="text-sm font-bold text-amber-200">
+                  {duplicateModal.pendingPayload?.quantityLiters} L
+                </div>
+                <div className="text-[11px] text-slate-300 mt-0.5">
+                  FAT: <span className="text-amber-300">{duplicateModal.pendingPayload?.fatPercentage}%</span> | SNF: <span className="text-purple-300">{duplicateModal.pendingPayload?.snfPercentage}%</span>
+                </div>
+                <div className="text-[10px] text-amber-400/80 mt-1 italic">
+                  (Awaiting Confirmation)
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs text-slate-300 mb-5 leading-relaxed">
+              ⚠️ <strong className="text-white">Admin Decision Required:</strong> If this is an intentional second delivery (e.g. second milk can) for this farmer, click <strong className="text-amber-400">&quot;Yes, Save Again&quot;</strong>. Otherwise, click <strong className="text-slate-300">&quot;Cancel&quot;</strong> to discard.
+            </div>
+
+            {/* MODAL ACTIONS */}
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={handleCancelDuplicate}
+                className="px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs flex items-center gap-1.5 transition-all active:scale-95"
+              >
+                <XCircle className="w-4 h-4 text-slate-400" />
+                <span>Cancel / Discard (Esc)</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDuplicate}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-lg shadow-amber-500/20 transition-all active:scale-95"
+              >
+                <Check className="w-4 h-4 stroke-[3]" />
+                <span>Yes, Save Again (Enter ↵)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

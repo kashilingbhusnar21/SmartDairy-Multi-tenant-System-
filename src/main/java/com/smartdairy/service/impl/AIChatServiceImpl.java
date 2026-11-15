@@ -1,111 +1,87 @@
 package com.smartdairy.service.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartdairy.dto.AIChatRequest;
 import com.smartdairy.dto.AIChatResponse;
-import com.smartdairy.exception.OpenAIException;
 import com.smartdairy.service.AIChatService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class AIChatServiceImpl implements AIChatService {
 
-    @Value("${groq.api.key}")
-    private String groqApiKey;
+    private final ChatClient chatClient;
 
-    @Value("${groq.api.url}")
-    private String groqApiUrl;
+    @Value("${spring.ai.openai.chat.options.model:llama-3.3-70b-versatile}")
+    private String modelName = "llama-3.3-70b-versatile";
 
-    @Value("${groq.model}")
-    private String groqModel;
-
-    private final WebClient.Builder webClientBuilder;
-    private final ObjectMapper objectMapper;
-
-    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
+    public AIChatServiceImpl(ChatClient.Builder chatClientBuilder) {
+        this.chatClient = chatClientBuilder.build();
+    }
 
     @Override
     public AIChatResponse chat(AIChatRequest request, String userRole) {
         String language = normalizeLanguage(request.getLanguage());
-        log.info("=== Starting Groq Chat Request ===");
-        log.info("User Role: {}", userRole);
-        log.info("Language: {}", language);
-        log.info("Message Length: {} chars", request.getMessage() != null ? request.getMessage().length() : 0);
-        
+        log.info("=== Starting Spring AI Chat Request (Groq) ===");
+        log.info("User Role: {}, Language: {}", userRole, language);
+
         // Validate input
         if (request.getMessage() == null || request.getMessage().trim().isEmpty()) {
-            log.error("Empty message received");
+            log.warn("Empty message received");
             return AIChatResponse.builder()
                     .response(emptyMessageText(language))
                     .conversationId(request.getConversationId() != null ? request.getConversationId() : UUID.randomUUID().toString())
-                    .model(groqModel)
+                    .model(modelName)
                     .language(language)
                     .modelUsed("none")
                     .build();
         }
-        String systemPrompt = getSystemPrompt(userRole, language);
-        Map<String, Object> requestBody = buildRequestBody(systemPrompt, request.getMessage(), language);
 
-        log.info("=== Groq API Call Configuration ===");
-        log.info("API URL: {}", groqApiUrl);
-        log.info("API Key (masked): {}...{}", 
-            groqApiKey.substring(0, Math.min(7, groqApiKey.length())),
-            groqApiKey.substring(Math.max(groqApiKey.length() - 4, 0)));
-        log.info("Model: {}", groqModel);
-        log.info("Request timeout: {} seconds", REQUEST_TIMEOUT.getSeconds());
+        String systemPrompt = getSystemPrompt(userRole, language);
+        String languageLabel = getLanguageName(language);
+        String userPrompt = """
+                Reply language: %s
+                Write the entire answer in %s only. Do not mix languages.
+
+                User question:
+                %s
+                """.formatted(languageLabel, languageLabel, request.getMessage());
 
         try {
-            log.info("=== Calling Groq API with model: {} ===", groqModel);
-            String response = callGroqModel(groqModel, requestBody);
-            
-            log.info("=== Successfully got response from model: {} ===", groqModel);
-            String aiResponse = parseGroqResponse(response);
+            log.info("Calling Spring AI ChatClient with model: {}", modelName);
+
+            String aiResponse = chatClient.prompt()
+                    .system(systemPrompt)
+                    .user(userPrompt)
+                    .call()
+                    .content();
+
             String cleanResponse = cleanMarkdown(aiResponse);
-            
-            log.info("=== Response Processing Complete ===");
-            log.info("Final response length: {} chars", cleanResponse.length());
-            
-            AIChatResponse aiChatResponse = AIChatResponse.builder()
+            log.info("Successfully received Spring AI response (length: {} chars)", cleanResponse != null ? cleanResponse.length() : 0);
+
+            return AIChatResponse.builder()
                     .response(cleanResponse)
                     .conversationId(request.getConversationId() != null ? request.getConversationId() : UUID.randomUUID().toString())
-                    .model(groqModel)
+                    .model(modelName)
                     .language(language)
-                    .modelUsed(groqModel)
+                    .modelUsed(modelName)
                     .build();
-            
-            log.info("=== Returning successful response to controller ===");
-            return aiChatResponse;
-                    
+
         } catch (Exception e) {
-            log.error("=== Groq API Call Failed ===");
-            log.error("Error: {}", e.getMessage(), e);
-            
-            log.error("Returning fallback response to controller");
+            log.error("=== Spring AI Groq API Call Failed ===", e);
             return AIChatResponse.builder()
                     .response(unavailableText(language))
                     .conversationId(request.getConversationId() != null ? request.getConversationId() : UUID.randomUUID().toString())
-                    .model(groqModel)
+                    .model(modelName)
                     .language(language)
                     .modelUsed("none")
                     .build();
         }
     }
-
 
     private String cleanMarkdown(String text) {
         if (text == null) return "";
@@ -119,171 +95,6 @@ public class AIChatServiceImpl implements AIChatService {
             .replaceAll("-\\s*", "")
             .replaceAll("\\n\\n+", "\n\n")
             .trim();
-    }
-
-    private String callGroqModel(String model, Map<String, Object> requestBody) throws Exception {
-        String fullUrl = groqApiUrl + "/chat/completions";
-        
-        log.info("=== Groq API Call Details ===");
-        log.info("Full API URL: {}", fullUrl);
-        log.info("Model: {}", model);
-        log.info("API Key (masked): {}...{}", 
-            groqApiKey.substring(0, Math.min(7, groqApiKey.length())),
-            groqApiKey.substring(Math.max(groqApiKey.length() - 4, 0)));
-        
-        try {
-            String requestBodyJson = objectMapper.writeValueAsString(requestBody);
-            log.info("Request body: {}", requestBodyJson);
-        } catch (Exception e) {
-            log.error("Failed to serialize request body: {}", e.getMessage());
-        }
-        
-        // Update the model in the request body
-        requestBody.put("model", model);
-        
-        WebClient webClient = webClientBuilder
-                .baseUrl(fullUrl)
-                .defaultHeader("Content-Type", "application/json")
-                .defaultHeader("Authorization", "Bearer " + groqApiKey)
-                .build();
-
-        try {
-            Mono<String> responseMono = webClient.post()
-                    .uri("")
-                    .bodyValue(requestBody)
-                    .retrieve()
-                    .onStatus(
-                        status -> status.is4xxClientError() || status.is5xxServerError(),
-                        response -> {
-                            log.error("=== HTTP Error Response ===");
-                            log.error("Status Code: {}", response.statusCode());
-                            return response.bodyToMono(String.class)
-                                .flatMap(body -> {
-                                    log.error("Error Response Body: {}", body);
-                                    return Mono.error(new OpenAIException(
-                                        "HTTP " + response.statusCode(),
-                                        response.statusCode().value(),
-                                        body
-                                    ));
-                                });
-                        }
-                    )
-                    .bodyToMono(String.class)
-                    .timeout(REQUEST_TIMEOUT)
-                    .doOnSuccess(response -> {
-                        log.info("=== API Call Successful ===");
-                        log.info("Response received (first 200 chars): {}", 
-                            response.substring(0, Math.min(200, response.length())));
-                    })
-                    .doOnError(error -> {
-                        log.error("=== API Call Failed ===");
-                        log.error("Error Type: {}", error.getClass().getSimpleName());
-                        log.error("Error Message: {}", error.getMessage());
-                    });
-
-            String result = responseMono.block();
-            
-            if (result == null || result.trim().isEmpty()) {
-                log.error("API returned null or empty response");
-                throw new OpenAIException("Empty response from Groq API", 0, "null");
-            }
-            
-            log.info("Full Response Length: {} characters", result.length());
-            return result;
-            
-        } catch (Exception e) {
-            log.error("Unexpected error during API call: {}", e.getMessage(), e);
-            throw new OpenAIException("Unexpected error: " + e.getMessage(), 500, e.getMessage());
-        }
-    }
-
-    private String parseGroqResponse(String response) throws Exception {
-        log.info("=== Parsing Groq Response ===");
-        
-        if (response == null || response.trim().isEmpty()) {
-            log.error("Response is null or empty");
-            throw new OpenAIException("Null or empty response", 0, "null");
-        }
-        
-        JsonNode jsonResponse;
-        try {
-            jsonResponse = objectMapper.readTree(response);
-            log.info("JSON parsed successfully");
-        } catch (Exception e) {
-            log.error("Failed to parse JSON response: {}", e.getMessage());
-            throw new OpenAIException("Invalid JSON response", 0, response);
-        }
-        
-        // Handle potential error responses from Groq
-        if (jsonResponse.has("error")) {
-            String errorMessage = jsonResponse.get("error").has("message") 
-                ? jsonResponse.get("error").get("message").asText()
-                : "Unknown error";
-            String errorType = jsonResponse.get("error").has("type")
-                ? jsonResponse.get("error").get("type").asText()
-                : "unknown";
-            log.error("Groq API Error - Type: {}, Message: {}", errorType, errorMessage);
-            throw new OpenAIException("Groq API error: " + errorMessage, 0, jsonResponse.get("error").toString());
-        }
-
-        if (!jsonResponse.has("choices") || jsonResponse.get("choices").isEmpty()) {
-            log.error("No choices in Groq response. Response: {}", response);
-            throw new OpenAIException("No choices in response", 0, response);
-        }
-
-        JsonNode choice = jsonResponse.get("choices").get(0);
-        if (!choice.has("message")) {
-            log.error("No message in choice. Response: {}", response);
-            throw new OpenAIException("No message in response choice", 0, response);
-        }
-
-        JsonNode messageNode = choice.get("message");
-        String content = messageNode.has("content") ? messageNode.get("content").asText() : "";
-        if ((content == null || content.trim().isEmpty()) && messageNode.has("reasoning")) {
-            content = messageNode.get("reasoning").asText();
-        }
-        if (content == null || content.trim().isEmpty()) {
-            log.error("Content is null or empty");
-            throw new OpenAIException("Empty content in response", 0, response);
-        }
-        
-        log.info("Successfully extracted content (length: {} chars)", content.length());
-        return content;
-    }
-
-    private Map<String, Object> buildRequestBody(String systemPrompt, String userMessage, String language) {
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", groqModel);
-        String languageLabel = getLanguageName(language);
-        String wrappedUserMessage = """
-                Reply language: %s
-                Write the entire answer in %s only. Do not mix languages.
-
-                User question:
-                %s
-                """.formatted(languageLabel, languageLabel, userMessage);
-        requestBody.put("messages", buildOpenAIMessages(systemPrompt, wrappedUserMessage));
-        requestBody.put("temperature", 0.7);
-        requestBody.put("max_tokens", 1000);
-        return requestBody;
-    }
-
-    private List<Map<String, Object>> buildOpenAIMessages(String systemPrompt, String userMessage) {
-        List<Map<String, Object>> messages = new ArrayList<>();
-        
-        // System message
-        Map<String, Object> systemMessage = new HashMap<>();
-        systemMessage.put("role", "system");
-        systemMessage.put("content", systemPrompt);
-        messages.add(systemMessage);
-        
-        // User message
-        Map<String, Object> userMsg = new HashMap<>();
-        userMsg.put("role", "user");
-        userMsg.put("content", userMessage);
-        messages.add(userMsg);
-        
-        return messages;
     }
 
     private String getSystemPrompt(String userRole, String language) {
