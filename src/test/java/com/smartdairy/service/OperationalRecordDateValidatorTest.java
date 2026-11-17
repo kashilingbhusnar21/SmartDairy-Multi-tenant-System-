@@ -27,7 +27,7 @@ class OperationalRecordDateValidatorTest {
     }
 
     @Test
-    @DisplayName("validateCreateDate should accept yesterday's date")
+    @DisplayName("validateCreateDate should accept yesterday's date (within 48 hours)")
     void validateCreateDate_WhenYesterday_DoesNotThrowException() {
         LocalDate yesterday = LocalDate.now().minusDays(1);
 
@@ -36,12 +36,13 @@ class OperationalRecordDateValidatorTest {
     }
 
     @Test
-    @DisplayName("validateCreateDate should accept two days ago (window boundary)")
-    void validateCreateDate_WhenTwoDaysAgo_DoesNotThrowException() {
+    @DisplayName("validateCreateDate should reject two days ago (outside 48-hour window)")
+    void validateCreateDate_WhenTwoDaysAgo_ThrowsIllegalArgumentException() {
         LocalDate twoDaysAgo = LocalDate.now().minusDays(2);
 
-        assertThatCode(() -> validator.validateCreateDate(twoDaysAgo))
-                .doesNotThrowAnyException();
+        assertThatThrownBy(() -> validator.validateCreateDate(twoDaysAgo))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(OperationalRecordDateValidator.MESSAGE);
     }
 
     @Test

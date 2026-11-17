@@ -152,7 +152,7 @@ function HomePage() {
             className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-200 font-semibold text-xs flex flex-col items-center justify-center text-center gap-1.5 active:scale-95 transition-all"
           >
             <CreditCard className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-            <span>10-Day Settlements</span>
+            <span>Payment Settlements</span>
           </Link>
 
           <Link
@@ -267,7 +267,7 @@ function HomePage() {
       <section className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-xs border border-slate-200/80 dark:border-slate-800 transition-colors">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">10-Day Billing & Payout Settlements</h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Billing & Payout Settlements</h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Overview of farmer payments and pending settlement debt deductions.
             </p>

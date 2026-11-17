@@ -8,7 +8,7 @@ function toISODate(date) {
 export function getOperationalRecordDateWindow() {
   const today = new Date();
   const minDate = new Date(today);
-  minDate.setDate(today.getDate() - 2);
+  minDate.setDate(today.getDate() - 1); // Strictly allow within 48 hours (Today & Yesterday only)
 
   return {
     min: toISODate(minDate),

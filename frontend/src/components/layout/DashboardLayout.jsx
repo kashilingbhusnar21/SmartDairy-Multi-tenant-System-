@@ -30,7 +30,7 @@ function DashboardLayout() {
 
       <aside
         className={`
-          fixed lg:static inset-y-0 left-0 z-50 w-64 shrink-0 transform transition-transform duration-200 ease-out
+          fixed lg:static inset-y-0 left-0 z-50 w-72 shrink-0 transform transition-transform duration-200 ease-out
           lg:translate-x-0
           ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}

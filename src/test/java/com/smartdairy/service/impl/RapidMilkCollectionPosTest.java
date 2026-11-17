@@ -359,7 +359,7 @@ public class RapidMilkCollectionPosTest {
     @DisplayName("Test 9: Date Window - Future dates rejected by OperationalRecordDateValidator")
     void test09_DateWindowValidation_TodayYesterdayAccepted_FutureRejected() {
         LocalDate futureDate = LocalDate.now().plusDays(2);
-        doThrow(new IllegalArgumentException("Records can only be created for Today, Yesterday, or the previous two days."))
+        doThrow(new IllegalArgumentException(OperationalRecordDateValidator.MESSAGE))
                 .when(operationalRecordDateValidator).validateCreateDate(futureDate);
 
         MilkCollectionRequest futureReq = new MilkCollectionRequest();
@@ -373,7 +373,7 @@ public class RapidMilkCollectionPosTest {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
                 milkCollectionService.create(futureReq)
         );
-        assertTrue(ex.getMessage().contains("Records can only be created for Today, Yesterday"));
+        assertTrue(ex.getMessage().contains(OperationalRecordDateValidator.MESSAGE));
     }
 
     // -----------------------------------------------------------------------------------
