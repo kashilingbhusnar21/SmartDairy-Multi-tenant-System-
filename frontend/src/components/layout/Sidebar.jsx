@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { clearAuth, getEmail, getRole } from "../../utils/auth";
+import BrandLogo from "../ui/BrandLogo";
 import {
   LayoutDashboard,
   Users,
@@ -10,10 +11,8 @@ import {
   ShoppingBag,
   BookOpen,
   BarChart3,
-  Receipt,
   Shield,
   Settings,
-  FileText,
   LogOut,
   Menu,
   X,
@@ -22,13 +21,14 @@ import {
   Wrench,
   Store,
   Zap,
+  ChevronRight
 } from "lucide-react";
 
 const navClass = ({ isActive }) =>
-  `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+  `group flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
     isActive
-      ? "bg-emerald-600 text-white shadow-md border-l-4 border-emerald-400"
-      : "text-slate-700 hover:bg-emerald-50 hover:translate-x-1"
+      ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/25 font-bold"
+      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/90 active:scale-98"
   }`;
 
 function Sidebar({ onNavigate }) {
@@ -46,7 +46,7 @@ function Sidebar({ onNavigate }) {
 
   const logout = () => {
     clearAuth();
-    toast.success('Logged out successfully');
+    toast.success("Logged out successfully");
     navigate("/login");
     onNavigate?.();
   };
@@ -56,7 +56,8 @@ function Sidebar({ onNavigate }) {
       {/* Mobile Toggle Button */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg border border-slate-200 hover:bg-slate-50 transition-colors"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-white rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-colors"
+        aria-label="Toggle navigation"
       >
         {isCollapsed ? <X size={20} /> : <Menu size={20} />}
       </button>
@@ -64,119 +65,157 @@ function Sidebar({ onNavigate }) {
       {/* Sidebar Overlay for Mobile */}
       {isCollapsed && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-30"
+          className="lg:hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-30"
           onClick={() => setIsCollapsed(true)}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static top-0 left-0 z-40 h-screen bg-[#F8FAFC] border-r border-slate-200 shadow-xl transition-transform duration-300 ease-in-out ${
-          isCollapsed ? '-translate-x-full' : 'translate-x-0'
-        } w-[260px] flex flex-col rounded-r-2xl`}
+        className={`fixed lg:static top-0 left-0 z-40 h-screen bg-white border-r border-slate-200/80 shadow-sm transition-transform duration-300 ease-in-out ${
+          isCollapsed ? "-translate-x-full" : "translate-x-0"
+        } w-[260px] flex flex-col`}
       >
         {/* Brand Section */}
-        <div className="p-6 border-b border-slate-200/60">
-          <div className="h-1 w-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full mb-4" />
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-3xl">🐄</span>
-            <h1 className="text-xl font-bold text-slate-800">Smart Dairy</h1>
+        <div className="p-5 border-b border-slate-100">
+          <BrandLogo size="md" />
+          <div className="mt-3 px-2 py-1 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between text-[11px] font-mono">
+            <span className="text-slate-400">TENANT:</span>
+            <span className="text-emerald-700 font-semibold truncate max-w-[140px]" title={email || "Admin"}>
+              {email || "Admin"}
+            </span>
           </div>
-          <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wider mb-2">
-            Admin Panel
-          </p>
-          <p className="text-xs text-slate-400 truncate" title={email || ""}>
-            {email || "Admin"}
-          </p>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto scrollbar-hide">
-          <NavLink to="/home" className={navClass} onClick={handleNav}>
-            <LayoutDashboard size={18} />
-            <span>Dashboard</span>
-          </NavLink>
-          <NavLink to="/farmers" className={navClass} onClick={handleNav}>
-            <Users size={18} />
-            <span>Farmers</span>
-          </NavLink>
-          <NavLink to="/milk-collections" className={navClass} onClick={handleNav}>
-            <Milk size={18} />
-            <span>Milk Collection</span>
-          </NavLink>
-          <NavLink to="/rapid-collection" className={navClass} onClick={handleNav}>
-            <Zap size={18} className="text-amber-500" />
-            <span className="flex items-center justify-between flex-1">
-              <span>Rapid POS</span>
-              <span className="text-[10px] uppercase font-black bg-amber-500/15 text-amber-700 px-1.5 py-0.5 rounded border border-amber-500/30">
-                FAST
-              </span>
-            </span>
-          </NavLink>
-          <NavLink to="/payments" className={navClass} onClick={handleNav}>
-            <CreditCard size={18} />
-            <span>Payments</span>
-          </NavLink>
-          <NavLink to="/feed-purchases" className={navClass} onClick={handleNav}>
-            <ShoppingBag size={18} />
-            <span>Feed Purchases</span>
-          </NavLink>
-          <NavLink to="/financial-ledger" className={navClass} onClick={handleNav}>
-            <BookOpen size={18} />
-            <span>Financial Ledger</span>
-          </NavLink>
-          <NavLink to="/financial-analytics" className={navClass} onClick={handleNav}>
-            <BarChart3 size={18} />
-            <span>Financial Analytics</span>
-          </NavLink>
-          <NavLink to="/farmers" className={navClass} onClick={handleNav}>
-            <Receipt size={18} />
-            <span>Farmer Bills</span>
-          </NavLink>
-          {role === "ADMIN" ? (
-            <>
-              <div className="pt-4 pb-2">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-4">
-                  Admin
-                </p>
+        {/* Navigation Sections */}
+        <nav className="flex-1 p-3.5 space-y-4 overflow-y-auto scrollbar-hide text-xs">
+          
+          {/* GROUP 1: CORE INTAKE */}
+          <div className="space-y-1">
+            <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Operations & Telemetry
+            </p>
+            <NavLink to="/home" className={navClass} onClick={handleNav}>
+              <div className="flex items-center gap-2.5">
+                <LayoutDashboard size={16} />
+                <span>Executive Dashboard</span>
               </div>
-              <NavLink to="/admin" className={navClass} onClick={handleNav}>
-                <Shield size={18} />
-                <span>Admin Dashboard</span>
-              </NavLink>
+            </NavLink>
+            <NavLink to="/rapid-collection" className={navClass} onClick={handleNav}>
+              <div className="flex items-center gap-2.5">
+                <Zap size={16} className="text-amber-500 fill-amber-500/20" />
+                <span className="font-bold">Rapid 4G POS</span>
+              </div>
+              <span className="text-[9px] font-mono font-black uppercase bg-amber-500/15 text-amber-700 px-1.5 py-0.2 rounded border border-amber-500/30">
+                LIVE
+              </span>
+            </NavLink>
+            <NavLink to="/milk-collections" className={navClass} onClick={handleNav}>
+              <div className="flex items-center gap-2.5">
+                <Milk size={16} />
+                <span>Milk Intake Feed</span>
+              </div>
+            </NavLink>
+            <NavLink to="/farmers" className={navClass} onClick={handleNav}>
+              <div className="flex items-center gap-2.5">
+                <Users size={16} />
+                <span>Farmer Directory</span>
+              </div>
+            </NavLink>
+          </div>
+
+          {/* GROUP 2: SETTLEMENTS & FINANCES */}
+          <div className="space-y-1">
+            <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Finances & Settlement
+            </p>
+            <NavLink to="/payments" className={navClass} onClick={handleNav}>
+              <div className="flex items-center gap-2.5">
+                <CreditCard size={16} />
+                <span>10-Day Settlements</span>
+              </div>
+            </NavLink>
+            <NavLink to="/feed-purchases" className={navClass} onClick={handleNav}>
+              <div className="flex items-center gap-2.5">
+                <ShoppingBag size={16} />
+                <span>Cattle Feed Sales</span>
+              </div>
+            </NavLink>
+            <NavLink to="/financial-ledger" className={navClass} onClick={handleNav}>
+              <div className="flex items-center gap-2.5">
+                <BookOpen size={16} />
+                <span>General Ledger</span>
+              </div>
+            </NavLink>
+            <NavLink to="/financial-analytics" className={navClass} onClick={handleNav}>
+              <div className="flex items-center gap-2.5">
+                <BarChart3 size={16} />
+                <span>Financial Analytics</span>
+              </div>
+            </NavLink>
+          </div>
+
+          {/* GROUP 3: ECOSYSTEM & ADMIN */}
+          {role === "ADMIN" && (
+            <div className="space-y-1">
+              <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Ecosystem & AI
+              </p>
               <NavLink to="/admin/settings" className={navClass} onClick={handleNav}>
-                <Settings size={18} />
-                <span>Milk Pricing</span>
+                <div className="flex items-center gap-2.5">
+                  <Settings size={16} />
+                  <span>FAT / SNF Pricing Matrix</span>
+                </div>
               </NavLink>
               <NavLink to="/admin/ai-chat" className={navClass} onClick={handleNav}>
-                <Bot size={18} />
-                <span>AI Assistant</span>
-              </NavLink>
-              <NavLink to="/admin/doctors" className={navClass} onClick={handleNav}>
-                <Stethoscope size={18} />
-                <span>Doctors</span>
-              </NavLink>
-              <NavLink to="/admin/vendors" className={navClass} onClick={handleNav}>
-                <Store size={18} />
-                <span>Vendors</span>
+                <div className="flex items-center gap-2.5">
+                  <Bot size={16} className="text-teal-600" />
+                  <span>AI Advisor (Trilingual)</span>
+                </div>
+                <span className="text-[9px] font-mono font-bold uppercase bg-teal-50 text-teal-700 px-1 py-0.2 rounded border border-teal-200">
+                  GPT-120B
+                </span>
               </NavLink>
               <NavLink to="/admin/equipment" className={navClass} onClick={handleNav}>
-                <Wrench size={18} />
-                <span>Equipment</span>
+                <div className="flex items-center gap-2.5">
+                  <Wrench size={16} />
+                  <span>Equipment Marketplace</span>
+                </div>
               </NavLink>
-            </>
-          ) : null}
+              <NavLink to="/admin/doctors" className={navClass} onClick={handleNav}>
+                <div className="flex items-center gap-2.5">
+                  <Stethoscope size={16} />
+                  <span>Veterinary Doctors</span>
+                </div>
+              </NavLink>
+              <NavLink to="/admin/vendors" className={navClass} onClick={handleNav}>
+                <div className="flex items-center gap-2.5">
+                  <Store size={16} />
+                  <span>Feed Vendors</span>
+                </div>
+              </NavLink>
+              <NavLink to="/admin" className={navClass} onClick={handleNav}>
+                <div className="flex items-center gap-2.5">
+                  <Shield size={16} />
+                  <span>Tenant Administration</span>
+                </div>
+              </NavLink>
+            </div>
+          )}
         </nav>
 
-        {/* Logout Section */}
-        <div className="p-4 border-t border-slate-200/60">
+        {/* Footer / Logout Section */}
+        <div className="p-3 border-t border-slate-100 space-y-1">
           <button
             type="button"
             onClick={logout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-red-50 hover:text-red-700 transition-all duration-200 hover:translate-x-1"
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-red-700 hover:bg-red-50/80 transition-colors"
           >
-            <LogOut size={18} />
-            <span>Logout</span>
+            <div className="flex items-center gap-2.5">
+              <LogOut size={16} />
+              <span>Sign Out</span>
+            </div>
+            <ChevronRight size={14} className="opacity-40" />
           </button>
         </div>
       </aside>

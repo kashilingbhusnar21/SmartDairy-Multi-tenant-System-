@@ -5,6 +5,7 @@ import ErrorState from "../components/ui/ErrorState";
 import PageLoader from "../components/ui/PageLoader";
 import Pagination from "../components/ui/Pagination";
 import { usePagination } from "../hooks/usePagination";
+import ConfirmModal from "../components/ui/ConfirmModal";
 import { deactivateFarmer, activateFarmer, listFarmers, resetFarmerPassword } from "../services/farmers";
 import { getErrorMessage } from "../utils/errorMessage";
 
@@ -15,6 +16,12 @@ function FarmerListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
+  const [deactivateModal, setDeactivateModal] = useState({
+    open: false,
+    farmerId: null,
+    farmerName: "",
+    submitting: false,
+  });
   const [resetPasswordModal, setResetPasswordModal] = useState({
     open: false,
     farmerId: null,
@@ -50,14 +57,26 @@ function FarmerListPage() {
     load(query);
   };
 
-  const handleDeactivate = async (id) => {
-    if (!window.confirm('Are you sure you want to deactivate this farmer? This will preserve all records but hide the farmer from active lists.')) return;
+  const promptDeactivate = (farmer) => {
+    setDeactivateModal({
+      open: true,
+      farmerId: farmer.id,
+      farmerName: farmer.fullName,
+      submitting: false,
+    });
+  };
+
+  const confirmDeactivate = async () => {
+    if (!deactivateModal.farmerId) return;
     try {
-      await deactivateFarmer(id);
+      setDeactivateModal((prev) => ({ ...prev, submitting: true }));
+      await deactivateFarmer(deactivateModal.farmerId);
       load(query);
       toast.success('Farmer deactivated successfully');
     } catch (err) {
       toast.error(getErrorMessage(err, 'Error occurred'));
+    } finally {
+      setDeactivateModal({ open: false, farmerId: null, farmerName: "", submitting: false });
     }
   };
 
@@ -228,7 +247,7 @@ function FarmerListPage() {
                       {f.active ? (
                         <button
                           type="button"
-                          onClick={() => handleDeactivate(f.id)}
+                          onClick={() => promptDeactivate(f)}
                           className="text-red-600 hover:underline"
                         >
                           Deactivate
@@ -320,6 +339,18 @@ function FarmerListPage() {
           </div>
         </div>
       )}
+      {/* DEACTIVATE CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={deactivateModal.open}
+        title="Deactivate Farmer"
+        message={`Are you sure you want to deactivate ${deactivateModal.farmerName}? Their historic ledger, milk intakes, and payment logs will be safely preserved.`}
+        confirmLabel="Yes, Deactivate"
+        cancelLabel="Cancel"
+        variant="danger"
+        loading={deactivateModal.submitting}
+        onConfirm={confirmDeactivate}
+        onCancel={() => setDeactivateModal({ open: false, farmerId: null, farmerName: "", submitting: false })}
+      />
     </div>
   );
 }

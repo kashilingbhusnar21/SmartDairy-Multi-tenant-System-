@@ -16,8 +16,8 @@ public class AIChatServiceImpl implements AIChatService {
 
     private final ChatClient chatClient;
 
-    @Value("${spring.ai.openai.chat.options.model:llama-3.3-70b-versatile}")
-    private String modelName = "llama-3.3-70b-versatile";
+    @Value("${spring.ai.openai.chat.options.model:openai/gpt-oss-120b}")
+    private String modelName = "openai/gpt-oss-120b";
 
     public AIChatServiceImpl(ChatClient.Builder chatClientBuilder) {
         this.chatClient = chatClientBuilder.build();
