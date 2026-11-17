@@ -40,9 +40,11 @@ import FarmerOutlet from './components/FarmerOutlet';
 //import Layout from './components/Layout';
 import DashboardLayout from './components/layout/DashboardLayout';
 import FarmerLayout from './components/layout/FarmerLayout';
+import { ThemeProvider } from './context/ThemeContext';
 function App() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <ThemeProvider>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
@@ -101,6 +103,7 @@ function App() {
         </Route>
       </Routes>
     </div>
+    </ThemeProvider>
   );
 }
 

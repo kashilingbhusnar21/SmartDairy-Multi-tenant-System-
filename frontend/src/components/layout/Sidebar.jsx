@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { clearAuth, getEmail, getRole } from "../../utils/auth";
 import BrandLogo from "../ui/BrandLogo";
+import { useTheme } from "../../context/ThemeContext";
 import {
   LayoutDashboard,
   Users,
@@ -28,7 +29,7 @@ const navClass = ({ isActive }) =>
   `group flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
     isActive
       ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/25 font-bold"
-      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/90 active:scale-98"
+      : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/90 dark:hover:bg-slate-800/80 active:scale-98"
   }`;
 
 function Sidebar({ onNavigate }) {
@@ -36,6 +37,7 @@ function Sidebar({ onNavigate }) {
   const role = getRole();
   const email = getEmail();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isDark } = useTheme();
 
   const handleNav = () => {
     onNavigate?.();
@@ -56,7 +58,7 @@ function Sidebar({ onNavigate }) {
       {/* Mobile Toggle Button */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-white rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 transition-colors"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
         aria-label="Toggle navigation"
       >
         {isCollapsed ? <X size={20} /> : <Menu size={20} />}
@@ -65,23 +67,23 @@ function Sidebar({ onNavigate }) {
       {/* Sidebar Overlay for Mobile */}
       {isCollapsed && (
         <div
-          className="lg:hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-30"
+          className="lg:hidden fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-30"
           onClick={() => setIsCollapsed(true)}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static top-0 left-0 z-40 h-screen bg-white border-r border-slate-200/80 shadow-sm transition-transform duration-300 ease-in-out ${
+        className={`fixed lg:static top-0 left-0 z-40 h-screen bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 shadow-sm transition-all duration-300 ease-in-out ${
           isCollapsed ? "-translate-x-full" : "translate-x-0"
         } w-[260px] flex flex-col`}
       >
         {/* Brand Section */}
-        <div className="p-5 border-b border-slate-100">
-          <BrandLogo size="md" />
-          <div className="mt-3 px-2 py-1 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between text-[11px] font-mono">
-            <span className="text-slate-400">TENANT:</span>
-            <span className="text-emerald-700 font-semibold truncate max-w-[140px]" title={email || "Admin"}>
+        <div className="p-5 border-b border-slate-100 dark:border-slate-800">
+          <BrandLogo size="md" variant={isDark ? "light" : "dark"} />
+          <div className="mt-3 px-2 py-1 rounded-lg bg-slate-50 dark:bg-slate-950/70 border border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-mono">
+            <span className="text-slate-400 dark:text-slate-500">TENANT:</span>
+            <span className="text-emerald-700 dark:text-emerald-400 font-semibold truncate max-w-[140px]" title={email || "Admin"}>
               {email || "Admin"}
             </span>
           </div>
@@ -92,7 +94,7 @@ function Sidebar({ onNavigate }) {
           
           {/* GROUP 1: CORE INTAKE */}
           <div className="space-y-1">
-            <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
               Operations & Telemetry
             </p>
             <NavLink to="/home" className={navClass} onClick={handleNav}>
@@ -106,7 +108,7 @@ function Sidebar({ onNavigate }) {
                 <Zap size={16} className="text-amber-500 fill-amber-500/20" />
                 <span className="font-bold">Rapid 4G POS</span>
               </div>
-              <span className="text-[9px] font-mono font-black uppercase bg-amber-500/15 text-amber-700 px-1.5 py-0.2 rounded border border-amber-500/30">
+              <span className="text-[9px] font-mono font-black uppercase bg-amber-500/15 text-amber-700 dark:text-amber-400 px-1.5 py-0.2 rounded border border-amber-500/30">
                 LIVE
               </span>
             </NavLink>
@@ -126,7 +128,7 @@ function Sidebar({ onNavigate }) {
 
           {/* GROUP 2: SETTLEMENTS & FINANCES */}
           <div className="space-y-1">
-            <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
               Finances & Settlement
             </p>
             <NavLink to="/payments" className={navClass} onClick={handleNav}>
@@ -158,7 +160,7 @@ function Sidebar({ onNavigate }) {
           {/* GROUP 3: ECOSYSTEM & ADMIN */}
           {role === "ADMIN" && (
             <div className="space-y-1">
-              <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 Ecosystem & AI
               </p>
               <NavLink to="/admin/settings" className={navClass} onClick={handleNav}>
@@ -169,10 +171,10 @@ function Sidebar({ onNavigate }) {
               </NavLink>
               <NavLink to="/admin/ai-chat" className={navClass} onClick={handleNav}>
                 <div className="flex items-center gap-2.5">
-                  <Bot size={16} className="text-teal-600" />
+                  <Bot size={16} className="text-teal-600 dark:text-teal-400" />
                   <span>AI Advisor (Trilingual)</span>
                 </div>
-                <span className="text-[9px] font-mono font-bold uppercase bg-teal-50 text-teal-700 px-1 py-0.2 rounded border border-teal-200">
+                <span className="text-[9px] font-mono font-bold uppercase bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 px-1 py-0.2 rounded border border-teal-200 dark:border-teal-800">
                   GPT-120B
                 </span>
               </NavLink>
@@ -205,11 +207,11 @@ function Sidebar({ onNavigate }) {
         </nav>
 
         {/* Footer / Logout Section */}
-        <div className="p-3 border-t border-slate-100 space-y-1">
+        <div className="p-3 border-t border-slate-100 dark:border-slate-800 space-y-1">
           <button
             type="button"
             onClick={logout}
-            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-red-700 hover:bg-red-50/80 transition-colors"
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50/80 dark:hover:bg-red-950/40 transition-colors"
           >
             <div className="flex items-center gap-2.5">
               <LogOut size={16} />
