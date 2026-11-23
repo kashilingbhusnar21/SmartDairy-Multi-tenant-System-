@@ -27,7 +27,7 @@ jobs:
       - name: Run Operational Date Validator Tests
         run: ./mvnw test -Dtest=OperationalRecordDateValidatorTest
 
-  # JOB 2: Continuous Deployment (Deploy via Login Shell on AWS EC2)
+  # JOB 2: Continuous Deployment (Deploy via Sourced Environment)
   deploy:
     name: Deploy to AWS EC2
     needs: build-and-test
@@ -42,28 +42,31 @@ jobs:
           timeout: 240s
           script: |
             echo "🚀 Starting Automated CI/CD Deployment..."
-            bash -l -c '
-              set -e
-              cd ~/SmartDairy-Multi-tenant-System-
+            cd ~/SmartDairy-Multi-tenant-System-
 
-              echo "📥 Pulling latest code from Git..."
-              git fetch origin
-              git reset --hard origin/master || git pull origin master
+            echo "📥 Pulling latest code from Git..."
+            git fetch origin
+            git reset --hard origin/master || git pull origin master
 
-              echo "🔨 Building Spring Boot Production JAR..."
-              chmod +x ./mvnw
-              ./mvnw clean package -DskipTests
+            echo "🔨 Building Spring Boot Production JAR..."
+            chmod +x ./mvnw
+            ./mvnw clean package -DskipTests
 
-              echo "🛑 Stopping previous backend on port 8080..."
-              sudo systemctl stop smartdairy 2>/dev/null || true
-              fuser -k 8080/tcp 2>/dev/null || true
-              sleep 2
+            echo "🛑 Stopping previous backend on port 8080..."
+            fuser -k 8080/tcp 2>/dev/null || true
+            sleep 2
 
-              echo "▶️ Launching Spring Boot with environment variables..."
-              nohup java -Xms256m -Xmx512m -jar target/smart-dairy-backend-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod > app.log 2>&1 < /dev/null &
-              
-              echo "🔍 Waiting 15s for Spring Boot startup..."
-              sleep 15
-              tail -n 25 app.log
-            '
+            echo "🔑 Sourcing environment variables from all standard files..."
+            [ -f /etc/environment ] && export $(grep -v '^#' /etc/environment | xargs -d '\n' 2>/dev/null) || true
+            [ -f ~/.profile ] && source ~/.profile 2>/dev/null || true
+            [ -f ~/.bashrc ] && eval "$(grep -E '^(export )?[A-Za-z0-9_]+=' ~/.bashrc | sed 's/^/export /')" || true
+            [ -f .env ] && export $(grep -v '^#' .env | xargs -d '\n' 2>/dev/null) || true
+
+            echo "▶️ Launching Spring Boot with verified environment..."
+            nohup java -Xms256m -Xmx512m -jar target/smart-dairy-backend-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod > app.log 2>&1 < /dev/null &
+
+            echo "🔍 Waiting 18s for Spring Boot initialization..."
+            sleep 18
+            tail -n 25 app.log
+
             echo "✅ Deployment script executed successfully!"
