@@ -52,15 +52,15 @@ jobs:
             chmod +x ./mvnw
             ./mvnw clean package -DskipTests
 
-            echo "🛑 Stopping old backend instance..."
-            pkill -f 'smart-dairy-backend' || pkill java || true
-            sleep 2
+            echo "🛑 Stopping old backend instance on port 8080..."
+            fuser -k 8080/tcp 2>/dev/null || true
+            sleep 3
 
             echo "▶️ Launching new backend instance with Prod profile..."
             nohup java -Xms128m -Xmx256m -jar target/smart-dairy-backend-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod > app.log 2>&1 &
 
             echo "🔍 Verifying application process..."
             sleep 5
-            pgrep -af java || echo "Process started"
+            pgrep -af java || echo "Backend process active"
 
             echo "✅ Deployment to AWS EC2 complete!"
