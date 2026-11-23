@@ -27,7 +27,7 @@ jobs:
       - name: Run Operational Date Validator Tests
         run: ./mvnw test -Dtest=OperationalRecordDateValidatorTest
 
-  # JOB 2: Continuous Deployment (Deploy to AWS EC2)
+  # JOB 2: Continuous Deployment (Deploy via Systemd on AWS EC2)
   deploy:
     name: Deploy to AWS EC2
     needs: build-and-test
@@ -39,7 +39,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          timeout: 180s
+          timeout: 240s
           script: |
             echo "🚀 Starting Automated CI/CD Deployment..."
             cd ~/SmartDairy-Multi-tenant-System-
@@ -52,15 +52,31 @@ jobs:
             chmod +x ./mvnw
             ./mvnw clean package -DskipTests
 
-            echo "🛑 Stopping old backend instance on port 8080..."
-            fuser -k 8080/tcp 2>/dev/null || true
-            sleep 3
+            echo "⚙️ Ensuring Systemd Service exists..."
+            sudo tee /etc/systemd/system/smartdairy.service > /dev/null << 'EOF'
+            [Unit]
+            Description=Smart Dairy Spring Boot Service
+            After=network.target
 
-            echo "▶️ Launching new backend instance with Prod profile..."
-            nohup java -Xms128m -Xmx256m -jar target/smart-dairy-backend-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod > app.log 2>&1 &
+            [Service]
+            User=ubuntu
+            WorkingDirectory=/home/ubuntu/SmartDairy-Multi-tenant-System-
+            ExecStart=/usr/bin/java -Xms128m -Xmx256m -jar /home/ubuntu/SmartDairy-Multi-tenant-System-/target/smart-dairy-backend-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
+            SuccessExitStatus=143
+            Restart=always
+            RestartSec=10
 
-            echo "🔍 Verifying application process..."
-            sleep 5
-            pgrep -af java || echo "Backend process active"
+            [Install]
+            WantedBy=multi-user.target
+            EOF
+
+            echo "🔄 Reloading Systemd and Restarting Application..."
+            sudo systemctl daemon-reload
+            sudo systemctl enable smartdairy
+            sudo systemctl restart smartdairy
+
+            echo "🔍 Waiting 15s for Spring Boot startup..."
+            sleep 15
+            sudo systemctl status smartdairy --no-pager
 
             echo "✅ Deployment to AWS EC2 complete!"
