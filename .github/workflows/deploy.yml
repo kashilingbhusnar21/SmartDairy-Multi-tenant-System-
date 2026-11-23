@@ -21,6 +21,9 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Grant Execute Permission to Maven Wrapper
+        run: chmod +x ./mvnw
+
       - name: Run Operational Date Validator Tests
         run: ./mvnw test -Dtest=OperationalRecordDateValidatorTest
 
@@ -46,6 +49,7 @@ jobs:
             git reset --hard origin/master || git pull origin master
 
             echo "🔨 Building Spring Boot Production JAR..."
+            chmod +x ./mvnw
             ./mvnw clean package -DskipTests
 
             echo "🛑 Stopping old backend instance..."
