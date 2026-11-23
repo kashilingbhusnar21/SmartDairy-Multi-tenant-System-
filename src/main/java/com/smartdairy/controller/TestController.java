@@ -7,6 +7,6 @@ public class TestController {
 
     @GetMapping("/test")
     public String home(){
-        return " backend running succesfully ";
+        return " backend running successfully ";
     }
 }
