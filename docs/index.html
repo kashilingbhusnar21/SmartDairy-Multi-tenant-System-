@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DairyAI Nexus — AWS Scaling &amp; Apache JMeter Load Test Reports</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; color: #24292f; background: #ffffff; max-width: 980px; margin: 40px auto; padding: 0 24px; line-height: 1.6; }
+    h1, h2, h3 { border-bottom: 1px solid #d0d7de; padding-bottom: 0.3em; margin-top: 24px; }
+    a { color: #0969da; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { background: #f6f8fa; padding: 0.2em 0.4em; border-radius: 6px; font-size: 90%; }
+    table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+    th, td { border: 1px solid #d0d7de; padding: 8px 12px; text-align: left; }
+    th { background: #f6f8fa; font-weight: 600; }
+    img { max-width: 100%; border: 1px solid #d0d7de; border-radius: 6px; margin: 8px 0 20px; }
+  </style>
+</head>
+<body>
+  <p><a href="https://github.com/kashilingbhusnar21/SmartDairy-Multi-tenant-System-">SmartDairy-Multi-tenant-System-</a></p>
+  <h1>DairyAI Nexus — AWS Scaling &amp; Apache JMeter Load Test Reports</h1>
+  <p><strong>Test Environment (<code>us-east-1</code>):</strong></p>
+  <ul>
+    <li><strong>Load Balancer:</strong> AWS Application Load Balancer (<code>dairyai-alb</code>) across 3 AZs (<code>us-east-1a</code>, <code>us-east-1b</code>, <code>us-east-1c</code>)</li>
+    <li><strong>App Tier:</strong> Auto Scaling Group (<code>t3.small</code>, <code>Min 1 / Max 3</code>, CPU 50% target) running NGINX (<code>worker_connections 8192</code>) + Spring Boot 3.3.5</li>
+    <li><strong>Database &amp; Cache:</strong> AWS RDS MySQL 8.4 (<code>db.t4g.micro</code>) + Redis (<code>@Cacheable</code> on <code>rateCharts</code>)</li>
+    <li><strong>Load Generator:</strong> Dedicated <code>m7i-flex.large</code> EC2 running Apache JMeter 5.6.3 CLI</li>
+  </ul>
+
+  <h2>Raw Apache JMeter HTML Dashboard Reports</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Test</th>
+        <th>Scenario</th>
+        <th>Total Requests</th>
+        <th>Avg Latency</th>
+        <th>Throughput</th>
+        <th>Error Rate</th>
+        <th>Raw Report</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Test 1</strong></td>
+        <td><strong>Mixed Read/Write</strong> (<code>300</code> users, <code>60s</code> ramp-up: <code>3 GET</code> + <code>1 POST /api/milk-collections</code>)</td>
+        <td><strong>34,492</strong></td>
+        <td>1,848.9 ms <em>(Min 6 ms)</em></td>
+        <td>140.2 req/s</td>
+        <td><strong>0.00%</strong></td>
+        <td><a href="performance/report1/index.html">Open Report 1</a></td>
+      </tr>
+      <tr>
+        <td><strong>Test 2</strong></td>
+        <td><strong>Staged 5,000 Users</strong> (<code>120s</code> ramp-up, <code>4</code> loops on Redis-cached <code>GET /api/pricing-settings</code>)</td>
+        <td><strong>20,000</strong></td>
+        <td><strong>10 ms</strong> <em>(Min 5 ms)</em></td>
+        <td>166.6 req/s</td>
+        <td><strong>0.00%</strong></td>
+        <td><a href="performance/report2/index.html">Open Report 2</a></td>
+      </tr>
+      <tr>
+        <td><strong>Test 3</strong></td>
+        <td><strong>Extreme 15s Burst</strong> (<code>5,000</code> users, <code>4,985</code> active simultaneously, <code>20</code> loops)</td>
+        <td><strong>100,000</strong></td>
+        <td>2,681 ms <em>(Min 1 ms)</em></td>
+        <td><strong>1,207.5 req/s</strong> <em>(1,395.2 peak)</em></td>
+        <td>8.27% <em>(cold-start lag)</em></td>
+        <td><a href="performance/report3/index.html">Open Report 3</a></td>
+      </tr>
+    </tbody>
+  </table>
+  <p><strong>JMeter Test Plans:</strong> <a href="performance/test1_mixed.jmx">test1_mixed.jmx</a> | <a href="performance/test2_5000.jmx">test2_5000.jmx</a></p>
+
+  <h2>AWS CloudWatch &amp; Auto Scaling Proof</h2>
+  <h3>1. Auto Scaling Group Activity (<code>dairyai-asg</code>)</h3>
+  <img src="performance/screenshots/01-aws-autoscaling-activity.png" alt="Auto Scaling Activity" />
+
+  <h3>2. Target Group Monitoring (<code>dairyai-tg</code> — <code>Healthy Hosts 1 -&gt; 2</code>, <code>73.9K Requests</code>)</h3>
+  <img src="performance/screenshots/02-aws-target-group-monitoring.png" alt="Target Group Monitoring" />
+
+  <h3>3. Application Load Balancer (<code>dairyai-alb</code>)</h3>
+  <img src="performance/screenshots/03a-aws-alb-monitoring-1.png" alt="ALB Monitoring 1" />
+  <img src="performance/screenshots/03b-aws-alb-monitoring-2.png" alt="ALB Monitoring 2" />
+
+  <h3>4. AWS RDS MySQL (<code>dairyai-loadtest-db</code>)</h3>
+  <img src="performance/screenshots/04a-aws-rds-monitoring-1.png" alt="RDS Monitoring 1" />
+  <img src="performance/screenshots/04b-aws-rds-monitoring-2.png" alt="RDS Monitoring 2" />
+</body>
+</html>
