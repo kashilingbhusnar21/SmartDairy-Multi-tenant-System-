@@ -1,0 +1,34 @@
+{
+  "GET Pricing (Redis)" : {
+    "transaction" : "GET Pricing (Redis)",
+    "sampleCount" : 100000,
+    "errorCount" : 8270,
+    "errorPct" : 8.27,
+    "meanResTime" : 2681.4803299999903,
+    "medianResTime" : 1120.5,
+    "minResTime" : 1.0,
+    "maxResTime" : 67299.0,
+    "pct1ResTime" : 2246.9000000000015,
+    "pct2ResTime" : 16241.800000000003,
+    "pct3ResTime" : 60230.85000000002,
+    "throughput" : 1211.6071969467498,
+    "receivedKBytesPerSec" : 680.3140689366633,
+    "sentKBytesPerSec" : 404.6578724177622
+  },
+  "Total" : {
+    "transaction" : "Total",
+    "sampleCount" : 100000,
+    "errorCount" : 8270,
+    "errorPct" : 8.27,
+    "meanResTime" : 2681.4803299999903,
+    "medianResTime" : 1120.5,
+    "minResTime" : 1.0,
+    "maxResTime" : 67299.0,
+    "pct1ResTime" : 2246.9000000000015,
+    "pct2ResTime" : 16241.800000000003,
+    "pct3ResTime" : 60230.85000000002,
+    "throughput" : 1211.6071969467498,
+    "receivedKBytesPerSec" : 680.3140689366633,
+    "sentKBytesPerSec" : 404.6578724177622
+  }
+}
