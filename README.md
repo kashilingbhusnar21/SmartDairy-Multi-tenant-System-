@@ -116,8 +116,52 @@ The platform is hardened for production with **85+ automated unit and integratio
 | **Reverse Proxy** | Nginx | 1.24+ | SSL termination, WAF rate-limiting, internal endpoint protection |
 | **Third-Party Services**| Twilio & Cloudinary | - | SMS dispatch notifications & cloud PDF invoice storage |
 | **Testing** | JUnit 5, Mockito, MockMvc | - | 85 automated unit, isolation, and integration tests |
-| **Load Testing** | Apache JMeter | 5.6+ | Performance and concurrency stress testing |
+| **Load Testing** | Apache JMeter | 5.6+ | 3-Tier production benchmarks on dedicated `m7i-flex.large` up to 5,000 users and 100,000 requests |
 | **Frontend** | React 18 + Vite | - | Admin & Farmer role-based responsive dashboards |
+
+---
+
+## 📈 Production AWS Stress Testing & 5,000-User Auto-Scaling Benchmarks
+
+To validate the high-concurrency throughput of DairyAI under rural rush hours (morning 6–9 AM & evening 5–8 PM collection windows), the complete stack was deployed on **AWS (Application Load Balancer + EC2 Auto Scaling + RDS MySQL 8.4 + Redis)** and stress-tested using **Apache JMeter 5.6** executed in headless CLI mode from a dedicated, isolated AWS `m7i-flex.large` instance.
+
+### 🏛️ AWS Scaling & Testing Topology
+```text
+┌─────────────────────────────────┐
+│   JMeter EC2 (m7i-flex.large)   │
+│  Isolated Load Generator Node   │
+└────────────────┬────────────────┘
+                 │ 300 to 5,000 Concurrent Virtual Threads
+                 ▼
+┌────────────────────────────────────────────────────────┐
+│           AWS Application Load Balancer (ALB)          │
+│       Multi-AZ Health Routing via /actuator/health     │
+└────────────────────────┬───────────────────────────────┘
+                         │
+        ┌────────────────┴────────────────┐
+        ▼                                 ▼
+┌───────────────────────────────┐ ┌───────────────────────────────┐
+│ EC2 Instance #1 (Active)      │ │ EC2 Instance #2 (Auto-Scaled) │
+│ Nginx (:80/:443) -> App(:8080)│ │ Spun up by ASG on CPU > 50%   │
+└───────────────┬───────────────┘ └───────────────┬───────────────┘
+                │                                 │
+                ├─────────────────────────────────┤
+                ▼                                 ▼
+     ┌──────────────────────┐          ┌──────────────────────┐
+     │  Redis In-Memory RAM │          │ AWS RDS (MySQL 8.4)  │
+     │  Pricing Cache: 10ms │          │ db.t4g.micro Port SG │
+     └──────────────────────┘          └──────────────────────┘
+```
+
+### 📊 The 3 Production Test Cases & Verified Metrics
+
+| Test Case | Scenario & Target Endpoint | Scale & Concurrency | Total Requests | Avg Latency | Throughput | Error % | Production Outcome & Finding |
+| :--- | :--- | :--- | :---: | :---: | :---: | :--- |
+| **Test 1: Normal Mixed Load** | Real-world mixed traffic (3 GETs + 1 `POST /api/milk-collections`) hitting live MySQL InnoDB writes | 300 users (60s ramp-up) | **34,492** | `1,848.9 ms` | `140.2 req/s` | **0.00%** | Zero packet drops. Proved database transaction integrity and multi-tenant isolation under concurrent writes. |
+| **Test 2: 5,000 Users Staged Scale** | Staged peak morning rush querying cached pricing charts (`GET /api/pricing-settings`) via Redis | 5,000 concurrent threads (120s ramp-up, 4 loops) | **20,000** | **10.0 ms** | `166.6 req/s` | **0.00%** | **Near-instantaneous sub-10ms response**. Verified ALB balance and zero cache stampede on Redis RAM layer. |
+| **Test 3: 5,000 Users Sudden Extreme Burst** | Extreme instant traffic spike slamming system to stress-test reactive Auto Scaling Group (ASG) limits | 5,000 concurrent threads (**15s flash ramp-up**, 20 loops) | **100,000** | `2,681.0 ms` | **1,207.5 req/s** *(Peak: 1,395.2/s)* | **8.27%** *(Cold-start)* | Pushed system to 1,395 req/s across 83 seconds. Identified the 60s EC2/JVM cold-start warmup boundary, establishing the need for **Scheduled Scaling** before peak rush windows. |
+
+> **Live Test Dashboards:** All 3 raw JMeter HTML dashboards (`report1`, `report2`, `report3`) are published on GitHub Pages: [https://kashilingbhusnar21.github.io/SmartDairy-Multi-tenant-System-/](https://kashilingbhusnar21.github.io/SmartDairy-Multi-tenant-System-/)
 
 ---
 
