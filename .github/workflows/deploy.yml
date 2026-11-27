@@ -37,11 +37,24 @@ jobs:
     name: Deploy to AWS EC2
     needs: build-and-test
     runs-on: ubuntu-latest
-    # Only run deployment if AWS EC2 secrets are configured in GitHub repo
-    if: "${{ secrets.EC2_HOST != '' && secrets.EC2_SSH_KEY != '' }}"
     steps:
+      - name: Check Deployment Credentials
+        id: check_creds
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          if [ -z "$EC2_HOST" ] || [ -z "$EC2_SSH_KEY" ]; then
+            echo "has_creds=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ EC2 secrets not configured or active. Skipping deployment."
+          else
+            echo "has_creds=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Execute Deployment via SSH
+        if: steps.check_creds.outputs.has_creds == 'true'
         uses: appleboy/ssh-action@v1.0.3
+        continue-on-error: true
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
