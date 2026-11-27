@@ -91,12 +91,20 @@ jobs:
             echo "▶️ Launching Spring Boot with verified environment..."
             nohup java -Xms256m -Xmx512m -jar target/smart-dairy-backend-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod > app.log 2>&1 < /dev/null &
 
-            echo "🔍 Waiting 18s for Spring Boot initialization..."
-            sleep 18
-            tail -n 25 app.log
+            echo "🔍 Polling for application startup and health (up to 60s)..."
+            HTTP_CODE="000"
+            for i in $(seq 1 12); do
+              sleep 5
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/actuator/health || echo "000")
+              echo "Attempt $i: /actuator/health returned $HTTP_CODE"
+              if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "403" ]; then
+                echo "🎉 Application started successfully and is healthy ($HTTP_CODE)!"
+                break
+              fi
+            done
 
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/actuator/health || echo "000")
-            echo "🩺 Post-deploy health check status: $HTTP_CODE"
+            tail -n 25 app.log
+            echo "🩺 Final health check status: $HTTP_CODE"
             if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "403" ]; then
               echo "❌ Health check failed ($HTTP_CODE)! Rolling back to ~/backups/app-old.jar..."
               fuser -k 8080/tcp 2>/dev/null || true
@@ -104,7 +112,7 @@ jobs:
               if [ -f ~/backups/app-old.jar ]; then
                 cp ~/backups/app-old.jar target/smart-dairy-backend-0.0.1-SNAPSHOT.jar
                 nohup java -Xms256m -Xmx512m -jar target/smart-dairy-backend-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod > app.log 2>&1 < /dev/null &
-                sleep 15
+                sleep 20
                 echo "🔄 Rolled back to previous working JAR!"
               fi
               exit 1
