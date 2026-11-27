@@ -24,8 +24,8 @@ jobs:
       - name: Grant Execute Permission to Maven Wrapper
         run: chmod +x ./mvnw
 
-      - name: Run Operational Date Validator Tests
-        run: ./mvnw test -Dtest=OperationalRecordDateValidatorTest
+      - name: Run Full Unit & Security Test Suite (85 Tests)
+        run: ./mvnw test
 
   # JOB 2: Continuous Deployment (Deploy via Sourced Environment)
   deploy:
@@ -48,6 +48,12 @@ jobs:
             git fetch origin
             git reset --hard origin/master || git pull origin master
 
+            echo "💾 Backing up previous working JAR before rebuild..."
+            mkdir -p ~/backups
+            if [ -f target/smart-dairy-backend-0.0.1-SNAPSHOT.jar ]; then
+              cp target/smart-dairy-backend-0.0.1-SNAPSHOT.jar ~/backups/app-old.jar
+            fi
+
             echo "🔨 Building Spring Boot Production JAR..."
             chmod +x ./mvnw
             ./mvnw clean package -DskipTests
@@ -69,4 +75,19 @@ jobs:
             sleep 18
             tail -n 25 app.log
 
-            echo "✅ Deployment script executed successfully!"
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/actuator/health || echo "000")
+            echo "🩺 Post-deploy health check status: $HTTP_CODE"
+            if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "403" ]; then
+              echo "❌ Health check failed ($HTTP_CODE)! Rolling back to ~/backups/app-old.jar..."
+              fuser -k 8080/tcp 2>/dev/null || true
+              sleep 2
+              if [ -f ~/backups/app-old.jar ]; then
+                cp ~/backups/app-old.jar target/smart-dairy-backend-0.0.1-SNAPSHOT.jar
+                nohup java -Xms256m -Xmx512m -jar target/smart-dairy-backend-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod > app.log 2>&1 < /dev/null &
+                sleep 15
+                echo "🔄 Rolled back to previous working JAR!"
+              fi
+              exit 1
+            fi
+
+            echo "✅ Deployment verified and healthy!"
