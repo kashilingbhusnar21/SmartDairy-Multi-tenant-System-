@@ -3,6 +3,11 @@ name: CI/CD Pipeline - SmartDairy Production
 on:
   push:
     branches: [ master, main ]
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+      - '*.md'
+      - '.gitignore'
   workflow_dispatch: # Allows manual one-click trigger from GitHub Actions UI
 
 jobs:
@@ -32,6 +37,8 @@ jobs:
     name: Deploy to AWS EC2
     needs: build-and-test
     runs-on: ubuntu-latest
+    # Only run deployment if AWS EC2 secrets are configured in GitHub repo
+    if: "${{ secrets.EC2_HOST != '' && secrets.EC2_SSH_KEY != '' }}"
     steps:
       - name: Execute Deployment via SSH
         uses: appleboy/ssh-action@v1.0.3
